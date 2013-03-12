@@ -1,0 +1,7 @@
+loglevel: WARNING
+locations:
+    data1:
+        path: test/data1
+    dummy:
+        path: /dev/null
+
