@@ -5,6 +5,22 @@ import sys
 sys.path.insert(0, "src")
 from yaml_server import __version__
 sys.path.pop(0)
+from distutils.command.clean import clean
+import os
+import shutil
+
+class completeClean(clean):
+    def run(self):
+        if os.path.exists(self.build_base):
+            shutil.rmtree(self.build_base)
+            
+        dist_dir = 'dist'
+        if os.path.exists(dist_dir):
+            shutil.rmtree(dist_dir)
+        dist_dir = "deb_dist"
+        if os.path.exists(dist_dir):
+            shutil.rmtree(dist_dir)
+        
 
 setup(
     name="yaml_server",
@@ -16,23 +32,18 @@ setup(
     url="https://github.com/ImmobilienScout24/yaml-server",
     packages=[ "yaml_server" ],
     package_dir={'':'src'},
-    package_data={'': ['conf/*']},
-    include_package_data=True,
     long_description="Small Python script that exports YAML configuration directories via HTTP",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Topic :: Utilities",
         "Programming Language :: Python",
         ],
-    entry_points={
-        'console_scripts': [
-            'yaml_server = yaml_server:__main__',
-            ],
-        },
+    scripts = ["src/bin/yaml_server"],
     data_files=[
                 ('/etc/yaml_server', [
-                                      'res/yaml_server/00_default.yaml'
+                                      'src/conf/00_default.yaml'
                                       ]
                  )
-                ]
+                ],
+     cmdclass={'clean' : completeClean},
 )

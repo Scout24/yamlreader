@@ -22,7 +22,7 @@ class YamlServerRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     
     def do_GET(self, onlyHeaders=False):
         '''Serve a GET request'''
-        
+
         status = 500
         content_type = "text/plain"
         if "Range" in self.headers:

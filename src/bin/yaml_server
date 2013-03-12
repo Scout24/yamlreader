@@ -1,0 +1,3 @@
+#!/usr/bin/env python
+import yaml_server.YamlServerMain
+yaml_server.YamlServerMain.main()
