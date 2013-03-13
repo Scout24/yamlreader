@@ -45,3 +45,8 @@ locations:
 ```
 
 This will map HTTP requests to `/mydata` to respond with the merged YAML files from `/etc/mydata`.
+
+Running
+-------
+
+To run simply call `yaml_server` and observe the log output in your syslog.
