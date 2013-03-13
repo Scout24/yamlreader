@@ -25,6 +25,7 @@ class YamlServerRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
         status = 500
         content_type = "text/plain"
+        etag = None
         if "Range" in self.headers:
             # filter out things that we don't support
             content = "Range header is not supported"
@@ -43,10 +44,8 @@ class YamlServerRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 if etag_header in self.headers and etag == self.headers.get(etag_header):
                     status = 304
                     content = None
-                else:
-                    self.send_header("ETag",etag)
                     
-            except YamlServerException as e:
+            except YamlServerException, e:
                 content = e.message
                 status = 404 
     
@@ -54,6 +53,8 @@ class YamlServerRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         if content:
             self.send_header("Content-length", len(content))
             self.send_header("Content-type", content_type)
+        if etag:
+            self.send_header("ETag",etag)
         self.end_headers()
         
         if not onlyHeaders and content:
@@ -61,7 +62,7 @@ class YamlServerRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def do_HEAD(self):
         """Serve a HEAD request."""
-        self.doGET(True)
+        self.do_GET(True)
         
     def end_headers(self):
         """Send standard headers and end header sending"""

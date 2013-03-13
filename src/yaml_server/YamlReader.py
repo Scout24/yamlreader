@@ -40,7 +40,7 @@ class YamlReader:
         for f in files:
             try:
                 new_data = safe_load(file(f))
-            except MarkedYAMLError as e:
+            except MarkedYAMLError, e:
                 raise YamlServerException("YAML Error: %s" % str(e))
             dict_merge(self.data,new_data)
     

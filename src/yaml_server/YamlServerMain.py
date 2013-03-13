@@ -12,6 +12,7 @@ import logging.handlers
 import optparse
 import SocketServer
 import signal
+from traceback import print_exception
 
 def main():
     usage = '''%prog merges all .yaml files in a directory and exports them over HTTP.'''
@@ -23,7 +24,7 @@ def main():
     root_logger.addHandler(handler)
     root_logger.setLevel(logging.INFO)
 
-    parser = optparse.OptionParser(usage=usage, version=yaml_server.__version__, prog=__package__)
+    parser = optparse.OptionParser(usage=usage, version=yaml_server.__version__, prog="yaml_server")
     parser.add_option("--debug", dest="debug", action="store_true", default=False, help="Enable debug logging [%default]")
     parser.add_option("--confdir", dest="confdir", action="store", default="/etc/yaml_server", type="string", help="Directory for configuration files [%default]")
     options, arguments = parser.parse_args()
@@ -44,16 +45,17 @@ def main():
             yaml_server.__config__["port"] = 8935
 
         # override log level from config
-        if "loglevel" in yaml_server.__config__:
+        if "loglevel" in yaml_server.__config__ and not options.debug:
+            # do not change log level from config if debug specified on command line
             root_logger.debug("Setting log level to '%s'" % yaml_server.__config__["loglevel"])
             root_logger.setLevel(yaml_server.__config__["loglevel"])
 
-    except BaseException as e:
+    except Exception, e:
         root_logger.fatal("Could not initialize yaml_server configuration from %s: %s" % (options.confdir,str(e)))
         sys.exit(1)
     try:
         httpd = SocketServer.TCPServer(("", yaml_server.__config__["port"]), YamlServerRequestHandler)
-    except Exception as e:
+    except Exception, e:
         root_logger.fatal("Could not start server: %s" % str(e))
         sys.exit(1)
 
@@ -69,12 +71,11 @@ def main():
         signal.signal(signal.SIGINT,shutdown_func)
         signal.signal(signal.SIGTERM,shutdown_func)
         # long poll to be nice to the system ressources. This is fine as long as httpd.shutdown() does not work for us. See SocketServer for details.
-        httpd.serve_forever(1000)
+        httpd.serve_forever()
     except SystemExit:
         pass
-    except BaseException as e:
-        root_logger.debug("Unexpeted Shutdown: %s" % e.__repr__())
-    except:
-        # if there is something we did not catch
-        raise
+    except Exception, e:
+        root_logger.debug("Unexpeted Shutdown: %s" % str(e))
+        from traceback import print_exc
+        print_exc(file=sys.stderr)
 

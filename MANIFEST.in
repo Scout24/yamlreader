@@ -1,2 +1,3 @@
 include src/conf/*
+include src/init.d/*
 include README.md

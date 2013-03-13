@@ -43,6 +43,10 @@ setup(
                 ('/etc/yaml_server', [
                                       'src/conf/00_default.yaml'
                                       ]
+                 ),
+                ('/etc/init.d', [
+                                      'src/init.d/yaml_server'
+                                      ]
                  )
                 ],
      cmdclass={'clean' : completeClean},
