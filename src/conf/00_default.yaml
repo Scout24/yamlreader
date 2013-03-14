@@ -4,6 +4,8 @@
 #
 # built-in default is 8935, override it if needed
 port: 8935
+# built-in default for pid file
+pidfile: /var/run/yaml_server
 # built-in default is INFO which gives you request logging. Override this with INFO if you really need it. DEBUG is rather chatty.
 loglevel: WARNING
 #locations:

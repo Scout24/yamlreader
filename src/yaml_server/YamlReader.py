@@ -1,9 +1,3 @@
-'''
-Created on Mar 11, 2013
-
-@author: sschapiro
-'''
-
 from yaml import MarkedYAMLError, safe_load, safe_dump
 import sys
 import glob
@@ -30,17 +24,21 @@ def dict_merge(a, b, path=None):
 
 
 class YamlReader:
-    def __init__(self,dir_path):
+    def __init__(self,dir_path,displayname=None):
+        if not displayname:
+            displayname=os.path.basename(dir_path)
         self.logger = logging.getLogger(__name__)
         self.data = {}
         files = sorted(glob.glob(os.path.join(dir_path,"*.yaml")))
         if not files:
-            raise YamlServerException("No .yaml files found in %s" % dir_path)
+            self.logger.warning("No .yaml files found in %s" % dir_path)
+            raise YamlServerException("No .yaml files found in %s" % displayname)
         self.logger.debug("Reading %s\n" % ", ".join(files))
         for f in files:
             try:
                 new_data = safe_load(file(f))
             except MarkedYAMLError, e:
+                self.logger.error("YAML Error: %s" % str(e))
                 raise YamlServerException("YAML Error: %s" % str(e))
             dict_merge(self.data,new_data)
     
@@ -54,4 +52,4 @@ class YamlReader:
 
 if __name__ == "__main__":
     usage='''YAML Reader merges all .yaml files in a directory given as arg.'''
-    print YamlReader(sys.argv[1]).dump()
+    print YamlReader(sys.argv[1],"%s from cmdline" % sys.argv[1]).dump()
