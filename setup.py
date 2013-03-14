@@ -26,10 +26,12 @@ setup(
     name="yaml_server",
     version=__version__,
     author="Schlomo Schapiro & Arkadiusz Dziewonski",
+    author_email='schlomo.schapiro@immobilienscout24.de',
     description="Merge all YAML files in a directory and export result via HTTP",
     license="GPL",
     keywords="yaml export http",
     url="https://github.com/ImmobilienScout24/yaml-server",
+    requires=["yaml"],
     packages=[ "yaml_server" ],
     package_dir={'':'src'},
     long_description="Small Python script that exports YAML configuration directories via HTTP",
@@ -46,6 +48,10 @@ setup(
                  ),
                 ('/etc/init.d', [
                                       'src/init.d/yaml_server'
+                                      ]
+                 ),
+                ('/etc/init', [
+                                      'src/init/yaml_server.conf'
                                       ]
                  )
                 ],
