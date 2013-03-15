@@ -30,11 +30,9 @@ class YamlServerMain(YamlDaemon):
         parser = optparse.OptionParser(usage=usage, version=yaml_server.__version__, prog="yaml_server")
         parser.add_option("--debug", dest="debug", action="store_true", default=False, help="Enable debug logging [%default]")
         parser.add_option("--confdir", dest="confdir", action="store", default="/etc/yaml_server", type="string", help="Directory for configuration files [%default]")
-        options, arguments = parser.parse_args()
+        options, self.args = parser.parse_args()
         if options.debug:
                 self.logger.setLevel(logging.DEBUG)
-        if arguments:
-            self.logger.warning("Ignoring extra command line arguments %s" % ", ".join(arguments))
     
         try:
             yaml_server.__config__ = YamlReader(options.confdir).get()

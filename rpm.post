@@ -1,0 +1,4 @@
+chkconfig --add yaml_server
+if service yaml_server status ; then
+    service yaml_server restart
+fi

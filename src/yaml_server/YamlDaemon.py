@@ -10,6 +10,8 @@ class YamlDaemon:
     
     Found in http://www.jejik.com/articles/2007/02/a_simple_unix_linux_daemon_in_python/
     """
+    args = []  # command line argments that are not options go here
+    
     def __init__(self, pidfile=None, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
         self.stdin = stdin
         self.stdout = stdout
@@ -19,19 +21,20 @@ class YamlDaemon:
     
     def daemonize(self):
         """
-        do the UNIX double-fork magic, see Stevens' "Advanced 
-        Programming in the UNIX Environment" for details (ISBN 0201563177)
+        do the UNIX double-fork magic and then call run().
+        
+        See Stevens' "Advanced Programming in the UNIX Environment" for details (ISBN 0201563177)
         http://www.erlenstar.demon.co.uk/unix/faq_2.html#SEC16
         """
         
         try: 
             pid = os.fork() 
             if pid > 0:
-                # exit first parent
-                sys.exit(0) 
+                # first parent returns success
+                return True
         except OSError, e: 
-            sys.stderr.write("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
-            sys.exit(1)
+            print "fork #1 failed: %d (%s)" % (e.errno, e.strerror) >> sys.stderr 
+            return False
     
         # decouple from parent environment
         os.chdir("/") 
@@ -45,7 +48,7 @@ class YamlDaemon:
                 # exit from second parent
                 sys.exit(0) 
         except OSError, e: 
-            sys.stderr.write("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
+            self.logger.fatal("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
             sys.exit(1) 
     
         # redirect standard file descriptors
@@ -65,14 +68,15 @@ class YamlDaemon:
             # write pidfile
             pid = str(os.getpid())
             try:
-                pidfile_handle = file(self.pidfile,'w+')
+                pidfile_handle = file(self.pidfile, 'w+')
                 pidfile_handle.write("%s\n" % pid)
                 pidfile_handle.close()
             except Exception, e:
-                self.logger.fatal("Aborting, could not create pid file %s: %s" % (self.pidfile,str(e)))
+                self.logger.fatal("Aborting, could not create pid file %s: %s" % (self.pidfile, str(e)))
                 sys.exit(1)
             else:
                 atexit.register(self.delpidfile)
+        self.run()
     
     def is_running(self):
         self.pid = self._read_pid()
@@ -80,14 +84,14 @@ class YamlDaemon:
         if self.pid:
             # have pid, ping process
             try:
-                os.kill(self.pid,0)
+                os.kill(self.pid, 0)
             except OSError, e:
                 # No process or we are not allowed to ping the process
                 if e.errno == 3:
                     return False
                 else:
                     # some other isse, throw it up
-                    raise YamlServerException("Could not ping process %r: %s" % (self.pid,str(e)))
+                    raise YamlServerException("Could not ping process %r: %s" % (self.pid, str(e)))
             else:
                 # no exception means that the process runs
                 return True
@@ -103,7 +107,7 @@ class YamlDaemon:
         if not self.pidfile:
             raise YamlServerException("No pidfile set!")
         try:
-            pf = file(self.pidfile,'r')
+            pf = file(self.pidfile, 'r')
             self.pid = int(pf.read().strip())
             pf.close()
         except IOError:
@@ -111,7 +115,7 @@ class YamlDaemon:
             self.pid = None
         except Exception, e:
             # some other error, throw up
-            raise YamlServerException("Could not read pid from pidfile %s: %s" %(self.pidfile,str(e)))
+            raise YamlServerException("Could not read pid from pidfile %s: %s" % (self.pidfile, str(e)))
         
         return self.pid
 
@@ -119,7 +123,7 @@ class YamlDaemon:
     def delpidfile(self):
         os.remove(self.pidfile)
 
-    def drop_privileges(self,uid_name=None, gid_name=None):
+    def drop_privileges(self, uid_name=None, gid_name=None):
         """ Drop privileges
         
         Found in https://github.com/zedshaw/python-lust/blob/master/lust/unix.py
@@ -130,7 +134,7 @@ class YamlDaemon:
     
         # Get the uid/gid from the name. If no group given, then derive group from uid_name
         if uid_name is None:
-            uid_name="nobody" # builtin default is nobody
+            uid_name = "nobody"  # builtin default is nobody
         running_uid = pwd.getpwnam(uid_name).pw_uid
         if gid_name is None:
             running_gid = pwd.getpwnam(uid_name).pw_gid
@@ -154,15 +158,22 @@ class YamlDaemon:
         """
         Start the daemon
         """
-        pid = self._read_pid()
-        if pid:
-            # TODO: ping the process and bail out only if pid is actually running
-            sys.stderr.write("pidfile %s already exist. Daemon already running?\n" % self.pidfile)
-            sys.exit(1)
+
+        # if we run then don't do anything. Silently ignore all errors that happen while we check the status
+        try:
+            if self.is_running():
+                print "Already running with pid %r!" % self.pid
+                return 0
+        except:
+            pass
 
         # Start the daemon
-        self.daemonize()
-        self.run()
+        if self.daemonize():
+            time.sleep(1)
+            return self.status()
+        else:
+            print "Could not start service!" >> sys.stderr
+            return 1
     
     def status(self):
         if self.is_running():
@@ -180,7 +191,8 @@ class YamlDaemon:
     
         if not self.pid:
             # no pid means that there is no process
-            return 0# not an error in a restart
+            print "Not running"
+            return 0  # not an error in a restart
 
         # Try killing the daemon process    
         try:
@@ -190,13 +202,13 @@ class YamlDaemon:
             # if the process is still there after 10 seconds, give it a hard kill
             os.kill(self.pid, SIGKILL)
             time.sleep(1)
-            os.kill(self.pid, SIGKILL) # try again, the process should be already gone. This also lets us jump to the except
+            os.kill(self.pid, SIGKILL)  # try again, the process should be already gone. This also lets us jump to the except
         except OSError, e:
             if e.errno == 3:
                 if os.path.exists(self.pidfile):
                     os.remove(self.pidfile)
             else:
-                raise YamlServerException("Could not kill process %r: %s" %(self.pid,str(e)))
+                raise YamlServerException("Could not kill process %r: %s" % (self.pid, str(e)))
         else:
             # the 2nd KILL also did not work, something is really bad here
             raise YamlServerException("Even a SIGKILL did not kill process %r!")
@@ -208,7 +220,29 @@ class YamlDaemon:
         Restart the daemon
         """
         self.stop()
-        self.start()
+        time.sleep(2)  # give system chance to release socket
+        return self.start()
+
+    def service_script(self):
+        """
+        Call this as service script
+        """
+        if len(self.args) == 1:
+            command = self.args[0]
+            if 'start' == command:
+                return self.start()
+            elif 'stop' == command:
+                return self.stop()
+            elif 'restart' == command:
+                return self.restart()
+            elif 'status' == command:
+                return self.status()
+            else:
+                print "Unknown command %s" % command
+                return 2
+        else:
+            print "usage: %s start|stop|restart|status" % sys.argv[0]
+            return 2
 
     def run(self):
         """
