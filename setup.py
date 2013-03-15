@@ -22,10 +22,16 @@ class completeClean(clean):
             shutil.rmtree(dist_dir)
 
 # for RPM we use a classic init script and for DEB we use an upstart service
-myScript=()
-cmdline=" ".join(sys.argv).lower()
+myScript = ()
+cmdline = " ".join(sys.argv).lower()
 # do we build for rpm? we find that by parsing the setup.py command line for typical rpm or rpmbuild stuff
-if cmdline.find("rpm") >= 0 or cmdline.find("-buildroot") >= 0:
+if (# rpm in command line
+    cmdline.find("rpm") >= 0
+    # buildroot in command line
+    or cmdline.find("/buildroot") >= 0
+    # there is an environment variable that contains rpm in the variable name
+    or " ".join(os.environ.keys()).lower().find("rpm") >= 0
+    ):
     print "Using runlevel script"
     myScript = ('/etc/init.d', [
                                       'src/init.d/yaml_server'
@@ -56,12 +62,12 @@ setup(
         "Topic :: Utilities",
         "Programming Language :: Python",
         ],
-    scripts = ["src/bin/yaml_server"],
+    scripts=["src/bin/yaml_server"],
     data_files=[
                 ('/etc/yaml_server', [
                                       'src/conf/00_default.yaml'
                                       ]
-                 ),myScript
+                 ), myScript
                 ],
      cmdclass={'clean' : completeClean},
 )
