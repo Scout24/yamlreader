@@ -1,0 +1,2 @@
+python setup.py test || exit 1
+python setup.py build
