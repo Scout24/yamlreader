@@ -23,7 +23,7 @@ class Test(unittest.TestCase):
         unittest.TestCase.setUp(self)
         self.logger = logging.getLogger()
         self.loghandler = logging.StreamHandler()
-        self.loghandler.setFormatter(logging.Formatter('yaml_server[%(module)s %(funcName)s]: %(levelname)s: %(message)s'))
+        self.loghandler.setFormatter(logging.Formatter('yaml_server[%(filename)s:%(lineno)d]: %(levelname)s: %(message)s'))
         self.logger.addHandler(self.loghandler)
         self.logger.setLevel(logging.DEBUG)
         
