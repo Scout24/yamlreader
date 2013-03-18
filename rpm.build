@@ -1,2 +1,4 @@
-python setup.py test || exit 1
+echo "First running unit tests"
+set -e
+python setup.py test
 python setup.py build
