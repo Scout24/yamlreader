@@ -24,11 +24,11 @@ def dict_merge(a, b, path=None):
 
 
 class YamlReader:
-    def __init__(self,dir_path,displayname=None):
+    def __init__(self,dir_path,displayname=None, defaultdata={}):
         if not displayname:
             displayname=os.path.basename(dir_path)
         self.logger = logging.getLogger(__name__)
-        self.data = {}
+        self.data = defaultdata
         files = sorted(glob.glob(os.path.join(dir_path,"*.yaml")))
         if not files:
             self.logger.warning("No .yaml files found in %s" % dir_path)

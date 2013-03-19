@@ -2,4 +2,5 @@ include src/conf/*
 include src/init.d/*
 include src/init/*
 include src/yaml_server_test/*
+include testdata/*
 include README.md
