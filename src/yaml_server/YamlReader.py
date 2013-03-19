@@ -23,27 +23,34 @@ def dict_merge(a, b, path=None):
     return a
 
 
-class YamlReader:
-    def __init__(self,dir_path,displayname=None, defaultdata={}):
+class YamlReader(object):
+    def __init__(self,dir_path,displayname=None, defaultdata=None):
+        self.logger = logging.getLogger(__name__)
+        self.logger.debug("initilized with dir_path=%s, displayname=%s,defaultdata=%s" %(dir_path,displayname,defaultdata))
         if not displayname:
             displayname=os.path.basename(dir_path)
-        self.logger = logging.getLogger(__name__)
-        self.data = defaultdata
+        if defaultdata:
+            self.data = defaultdata
+        else:
+            self.data = {}
+        files = []
         if os.path.isfile(dir_path):
             files = [dir_path]
         else:
             files = sorted(glob.glob(os.path.join(dir_path,"*.yaml")))
-        if not files:
-            self.logger.warning("No .yaml files found in %s" % dir_path)
-            raise YamlServerException("No .yaml files found in %s" % displayname)
-        self.logger.debug("Reading %s\n" % ", ".join(files))
-        for f in files:
-            try:
-                new_data = safe_load(file(f))
-            except MarkedYAMLError, e:
-                self.logger.error("YAML Error: %s" % str(e))
-                raise YamlServerException("YAML Error: %s" % str(e))
-            dict_merge(self.data,new_data)
+        if files:
+            self.logger.debug("Reading %s\n" % ", ".join(files))
+            for f in files:
+                try:
+                    new_data = safe_load(file(f))
+                except MarkedYAMLError, e:
+                    self.logger.error("YAML Error: %s" % str(e))
+                    raise YamlServerException("YAML Error: %s" % str(e))
+                dict_merge(self.data,new_data)
+        else:
+            if not defaultdata:
+                self.logger.warning("No .yaml files found in %s and no default data given" % dir_path)
+                raise YamlServerException("No .yaml files found in %s" % displayname)
     
 
     def get(self):
