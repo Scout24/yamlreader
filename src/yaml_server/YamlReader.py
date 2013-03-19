@@ -29,7 +29,10 @@ class YamlReader:
             displayname=os.path.basename(dir_path)
         self.logger = logging.getLogger(__name__)
         self.data = defaultdata
-        files = sorted(glob.glob(os.path.join(dir_path,"*.yaml")))
+        if os.path.isfile(dir_path):
+            files = [dir_path]
+        else:
+            files = sorted(glob.glob(os.path.join(dir_path,"*.yaml")))
         if not files:
             self.logger.warning("No .yaml files found in %s" % dir_path)
             raise YamlServerException("No .yaml files found in %s" % displayname)

@@ -1,6 +1,6 @@
-include src/conf/*
-include src/init.d/*
-include src/init/*
-include src/yaml_server_test/*
-include testdata/*
+graft src/conf
+graft src/init.d
+graft src/init
+graft test
+graft testdata
 include README.md

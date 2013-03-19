@@ -55,7 +55,7 @@ setup(
     url="https://github.com/ImmobilienScout24/yaml-server",
     requires=["yaml"],
     packages=[ "yaml_server" ],
-    test_suite="yaml_server_test",
+    test_suite="test",
     package_dir={'':'src'},
     long_description="Small Python script that exports YAML configuration directories via HTTP",
     classifiers=[
