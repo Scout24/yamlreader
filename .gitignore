@@ -1,4 +1,4 @@
-/yaml_server.egg-info
+*.egg-info
 /.project
 /.pydevproject
 /dist
