@@ -1,6 +1,3 @@
-graft src/conf
-graft src/init.d
-graft src/init
 graft test
 graft testdata
 include README.md

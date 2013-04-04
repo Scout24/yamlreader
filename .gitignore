@@ -5,3 +5,4 @@
 /build
 /deb_dist
 *.pyc
+*~
