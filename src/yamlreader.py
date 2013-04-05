@@ -1,5 +1,5 @@
-__all__ = ["YamlReaderError","yaml_load"]
-__version__ = "1"
+__all__ = ["YamlReaderError", "yaml_load"]
+__version__ = "2"
 
 from yaml import MarkedYAMLError, safe_load, safe_dump
 import sys
@@ -10,25 +10,45 @@ import logging
 class YamlReaderError(Exception):
     pass
 
-def dict_merge(a, b, path=None):
-    """merges b into a
+def data_merge(a, b):
+    """merges b into a and return merged result
     based on http://stackoverflow.com/questions/7204805/python-dictionaries-of-dictionaries-merge
-    and extended to also merge arrays and to replace the content of keys with the same name"""
-    if path is None: path = []
-    for key in b:
-        if key in a:
-            if isinstance(a[key], dict) and isinstance(b[key], dict):
-                dict_merge(a[key], b[key], path + [str(key)])
-            elif isinstance(a[key], list) and isinstance(b[key], list):
-                a[key].extend(b[key])
+    and extended to also merge arrays and to replace the content of keys with the same name
+    
+    NOTE: tuples and arbitrary objects are not handled as it is totally ambiguous what should happen"""
+    key = None
+    # ## debug output
+    # sys.stderr.write("DEBUG: %s to %s\n" %(b,a))
+    try:
+        if a is None or isinstance(a, str) or isinstance(a, unicode) or isinstance(a, int) or isinstance(a, long) or isinstance(a, float):
+            # border case for first run or if a is a primitive
+            a = b
+        elif isinstance(a, list):
+            # lists can be only appended
+            if isinstance(b, list):
+                # merge lists
+                a.extend(b)
             else:
-                a[key] = b[key]
+                # append to list
+                a.append(b)
+        elif isinstance(a, dict):
+            # dicts must be merged
+            if isinstance(b, dict):
+                for key in b:
+                    if key in a:
+                        a[key] = data_merge(a[key], b[key])
+                    else:
+                        a[key] = b[key]
+            else:
+                raise YamlReaderError('Cannot merge non-dict "%s" into dict "%s"' % (b, a))
         else:
-            a[key] = b[key]
+            raise YamlReaderError('NOT IMPLEMENTED "%s" into "%s"' % (b, a))
+    except TypeError, e:
+        raise YamlReaderError('TypeError "%s" in key "%s" when merging "%s" into "%s"' % (e, key, b, a))
     return a
 
 
-def yaml_load(source,defaultdata=None):
+def yaml_load(source, defaultdata=None):
     """merge YAML data from files found in source
     
     Always returns a dict. The YAML files are expected to contain some kind of 
@@ -44,11 +64,11 @@ def yaml_load(source,defaultdata=None):
     defaultdata can be used to initialize the data.
     """
     logger = logging.getLogger(__name__)
-    logger.debug("initilized with source=%s, defaultdata=%s" %(source,defaultdata))
+    logger.debug("initilized with source=%s, defaultdata=%s" % (source, defaultdata))
     if defaultdata:
         data = defaultdata
     else:
-        data = {}
+        data = None
     files = []
     if type(source) is not str and len(source) == 1:
         # when called from __main source is always a list, even if it contains only one item.
@@ -59,7 +79,7 @@ def yaml_load(source,defaultdata=None):
         files = source
     elif os.path.isdir(source):
         # got a dir, read all *.yaml files 
-        files = sorted(glob.glob(os.path.join(source,"*.yaml")))
+        files = sorted(glob.glob(os.path.join(source, "*.yaml")))
     elif os.path.isfile(source):
         # got a single file, turn it into list to use the same code
         files = [source]
@@ -77,7 +97,7 @@ def yaml_load(source,defaultdata=None):
                 logger.error("YAML Error: %s" % str(e))
                 raise YamlReaderError("YAML Error: %s" % str(e))
             if new_data is not None:
-                dict_merge(data,new_data)
+                data = data_merge(data, new_data)
     else:
         if not defaultdata:
             logger.error("No YAML data found in %s and no default data given" % source)
@@ -88,8 +108,8 @@ def yaml_load(source,defaultdata=None):
 def __main():
     import optparse
     parser = optparse.OptionParser(usage="%prog [options] source...",
-                                   description="Merge YAML data from given files, dir or file glob", 
-                                   version="%"+"prog %s" % __version__, 
+                                   description="Merge YAML data from given files, dir or file glob",
+                                   version="%" + "prog %s" % __version__,
                                    prog="yamlreader")
     parser.add_option("--debug", dest="debug", action="store_true", default=False, help="Enable debug logging [%default]")
     options, args = parser.parse_args()
@@ -104,7 +124,7 @@ def __main():
     if not args:
         parser.error("Need at least one argument")
     try:
-        print safe_dump(yaml_load(args,defaultdata={}), 
+        print safe_dump(yaml_load(args, defaultdata={}),
                         indent=4, default_flow_style=False, canonical=False)
     except Exception, e:
         parser.error(e)

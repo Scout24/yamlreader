@@ -2,6 +2,7 @@ import unittest
 import logging
 import sys
 from yamlreader import *
+from yamlreader import data_merge
 
 
 class Test(unittest.TestCase):
@@ -38,7 +39,7 @@ class Test(unittest.TestCase):
     loghandler.setFormatter(logging.Formatter('yamlreader_test[%(filename)s:%(lineno)d]: %(levelname)s: %(message)s'))
     logger.addHandler(loghandler)
     logger.setLevel(logging.DEBUG)
-    
+
     def test_should_correctly_merge_single_yaml_file(self):
         self.assertEqual(yaml_load("testdata/data1/test1.yaml"), self.data1_test1)
         
@@ -77,7 +78,34 @@ class Test(unittest.TestCase):
     
     def test_should_return_default_data_if_invalid_dir_given(self):
         self.assertEqual(yaml_load("testdata", defaultdata={"foo":"bar"}), {"foo":"bar"})
+
+    def test_merge_complex_list_to_list(self):
+        self.assertEqual(data_merge([1, 2], [{1:2}, 1]), [1, 2, {1: 2}, 1])
         
+    def test_merge_dict_to_list(self):
+        self.assertEqual(data_merge([1, 2], {1:2}), [1, 2, {1: 2}])
+
+    def test_merge_string_to_list(self):
+        self.assertEqual(data_merge([1, 2], "hello"), [1, 2, "hello"])
+        
+    def test_merge_tuple_to_list(self):
+        self.assertEqual(data_merge([1, 2], ({1:2}, 3)), [1, 2, ({1: 2}, 3)])
+        
+    def test_merge_dict_to_dict(self):
+        self.assertEqual(data_merge({1:2,3:[1,2,3]},{3:6}),{1:2,3:[1,2,3,6]})
+    
+    def test_merge_deep_dict_to_deep_dict(self):
+        self.assertEqual(data_merge({1:2,3:{1:2}},{3:{2:5}}),{1: 2, 3: {1: 2, 2: 5}})
+    
+    def test_failt_to_merge_string_to_tuple(self):
+        self.assertRaises(YamlReaderError,data_merge,(1,2,3),"hello")
+        
+    def test_fail_to_merge_string_to_dict(self):
+        self.assertRaises(YamlReaderError,data_merge,{1:2},"hello")
+
+    def test_fail_to_merge_list_to_dict(self):
+        self.assertRaises(YamlReaderError,data_merge,{1:2},[3,2])
+
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.test_should_return_default_data_if_invalid_file_given']
     unittest.main()
