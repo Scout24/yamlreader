@@ -4,10 +4,13 @@ yamlreader
 Merge YAML data from a directory, a list of files or a file glob. With a directory, the YAML files (`*.yaml`) are sorted alphabetically. The YAML files are expected to contain a complex key-value structure and merged with the following rules:
 
 * lists get appended
-* hashes get merged
-* scalars are overwritten
+* hashes get merged by key
+* scalars (numbers, strings) are overwritten
+* everything else will fail
 
 The purpose is to allow several YAML files instead of a single YAML file. We use it to help our software read configuration data from an arbitrary amount of YAML files instead of a single YAML file.
+
+Read the unit test to see some examples.
 
 Building
 --------
