@@ -28,7 +28,7 @@ The package installs a command line script `yamlreader` that can be used to read
 Contributing
 ------------
 
-Create a new [virtual envirnoment](https://pypi.python.org/pypi/virtualenv):
+Create a new [virtual environment](https://pypi.python.org/pypi/virtualenv):
 
 ```bash
 virtualenv venv
