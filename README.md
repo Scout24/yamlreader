@@ -25,6 +25,33 @@ Running
 
 The package installs a command line script `yamlreader` that can be used to read one or many YAML files and dump the merge result as a YAML document.
 
+Contributing
+------------
+
+Create a new [virtual envirnoment](https://pypi.python.org/pypi/virtualenv):
+
+```bash
+virtualenv venv
+```
+
+Activate the virtual environment
+
+```bash
+source venv/bin/activate
+```
+
+Install requirements using pip
+
+```bash
+pip install -r requirements.txt
+```
+
+Now you are able to run the tests:
+
+```bash
+python setup.py test
+```
+
 Use it in your software
 -----------------------
 
