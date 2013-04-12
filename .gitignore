@@ -6,3 +6,6 @@
 /deb_dist
 *.pyc
 *~
+
+# virtual environment
+ve*
