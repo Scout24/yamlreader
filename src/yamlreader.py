@@ -1,5 +1,5 @@
 __all__ = ["YamlReaderError", "yaml_load"]
-__version__ = "2"
+__version__ = "3"
 
 from yaml import MarkedYAMLError, safe_load, safe_dump
 import sys
@@ -90,9 +90,12 @@ def yaml_load(source, defaultdata=None):
         logger.debug("Reading %s\n" % ", ".join(files))
         for yaml_file in files:
             try:
-                with open(yaml_file) as f: 
+                try:
+                    f = open(yaml_file)
                     new_data = safe_load(f)
                     logger.debug("YAML LOAD: %s" % new_data)
+                finally:
+                    f.close()
             except MarkedYAMLError, e:
                 logger.error("YAML Error: %s" % str(e))
                 raise YamlReaderError("YAML Error: %s" % str(e))
