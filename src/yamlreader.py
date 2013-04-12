@@ -2,19 +2,20 @@ __all__ = ["YamlReaderError", "yaml_load"]
 __version__ = "3"
 
 from yaml import MarkedYAMLError, safe_load, safe_dump
-import sys
 import glob
 import os
 import logging
 
+
 class YamlReaderError(Exception):
     pass
+
 
 def data_merge(a, b):
     """merges b into a and return merged result
     based on http://stackoverflow.com/questions/7204805/python-dictionaries-of-dictionaries-merge
     and extended to also merge arrays and to replace the content of keys with the same name
-    
+
     NOTE: tuples and arbitrary objects are not handled as it is totally ambiguous what should happen"""
     key = None
     # ## debug output
@@ -50,17 +51,17 @@ def data_merge(a, b):
 
 def yaml_load(source, defaultdata=None):
     """merge YAML data from files found in source
-    
-    Always returns a dict. The YAML files are expected to contain some kind of 
+
+    Always returns a dict. The YAML files are expected to contain some kind of
     key:value structures, possibly deeply nested. When merging, lists are
     appended and dict keys are replaced. The YAML files are read with the
     yaml.safe_load function.
-     
-    source can be a file, a dir, a list/tuple of files or a string containing 
+
+    source can be a file, a dir, a list/tuple of files or a string containing
     a glob expression (with ?*[]).
-    
+
     For a dir all *.yaml files will be read in alphabetical order.
-       
+
     defaultdata can be used to initialize the data.
     """
     logger = logging.getLogger(__name__)
@@ -78,7 +79,7 @@ def yaml_load(source, defaultdata=None):
         # got a list, assume to be files
         files = source
     elif os.path.isdir(source):
-        # got a dir, read all *.yaml files 
+        # got a dir, read all *.yaml files
         files = sorted(glob.glob(os.path.join(source, "*.yaml")))
     elif os.path.isfile(source):
         # got a single file, turn it into list to use the same code
@@ -108,6 +109,7 @@ def yaml_load(source, defaultdata=None):
 
     return data
 
+
 def __main():
     import optparse
     parser = optparse.OptionParser(usage="%prog [options] source...",
@@ -122,7 +124,6 @@ def __main():
         loghandler.setFormatter(logging.Formatter('yamlreader: %(levelname)s: %(message)s'))
         logger.addHandler(loghandler)
         logger.setLevel(logging.DEBUG)
-        
 
     if not args:
         parser.error("Need at least one argument")
