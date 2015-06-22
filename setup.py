@@ -40,6 +40,9 @@ setup(
         "Development Status :: 4 - Beta",
         "Topic :: Utilities",
         "Programming Language :: Python",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 2.7",
         ],
      cmdclass={'clean' : completeClean},
      entry_points = {
