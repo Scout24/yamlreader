@@ -31,6 +31,7 @@ setup(
     keywords="yaml",
     url="https://github.com/ImmobilienScout24/yamlreader",
     requires=["yaml"],
+    install_requires=["PyYAML"],
     py_modules=[ "yamlreader" ],
     test_suite="test",
     package_dir={'':'src'},
