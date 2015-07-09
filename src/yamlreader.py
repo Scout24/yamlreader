@@ -1,5 +1,5 @@
 __all__ = ["YamlReaderError", "yaml_load"]
-__version__ = "3"
+__version__ = "3.0.0"
 
 from yaml import MarkedYAMLError, safe_load, safe_dump
 import glob
