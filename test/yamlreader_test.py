@@ -71,7 +71,7 @@ class Test(unittest.TestCase):
         self.assertRaises(YamlReaderError, yaml_load, "testdata/gaga*")
 
     def test_should_return_default_data_if_empty_file_given(self):
-        self.assertEqual(yaml_load("/dev/null", defaultdata={"foo":"bar"}), {"foo":"bar"})
+        self.assertEqual(yaml_load("testdata/empty.yaml", defaultdata={"foo":"bar"}), {"foo":"bar"})
 
     def test_should_fail_on_invalid_yaml_dir(self):
         self.assertRaises(YamlReaderError, yaml_load, "testdata")
