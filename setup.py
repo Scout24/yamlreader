@@ -27,7 +27,7 @@ setup(
     author="Schlomo Schapiro",
     author_email='schlomo.schapiro@immobilienscout24.de',
     description="Merge YAML data from given files, dir or file glob",
-    license="GPL",
+    license="Apache License 2.0",
     keywords="yaml",
     url="https://github.com/ImmobilienScout24/yamlreader",
     requires=["yaml"],
