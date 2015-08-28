@@ -6,6 +6,12 @@ import glob
 import os
 import logging
 
+class NoDefault(object):
+    def __str__(self):
+        return "No default data"
+
+
+NO_DEFAULT = NoDefault()
 
 class YamlReaderError(Exception):
     pass
@@ -49,7 +55,7 @@ def data_merge(a, b):
     return a
 
 
-def yaml_load(source, defaultdata=None):
+def yaml_load(source, defaultdata=NO_DEFAULT):
     """merge YAML data from files found in source
 
     Always returns a dict. The YAML files are expected to contain some kind of
@@ -66,10 +72,10 @@ def yaml_load(source, defaultdata=None):
     """
     logger = logging.getLogger(__name__)
     logger.debug("initilized with source=%s, defaultdata=%s" % (source, defaultdata))
-    if defaultdata:
-        data = defaultdata
-    else:
+    if defaultdata is NO_DEFAULT:
         data = None
+    else:
+        data = defaultdata
     files = []
     if type(source) is not str and len(source) == 1:
         # when called from __main source is always a list, even if it contains only one item.
@@ -103,7 +109,7 @@ def yaml_load(source, defaultdata=None):
             if new_data is not None:
                 data = data_merge(data, new_data)
     else:
-        if not defaultdata:
+        if defaultdata is NO_DEFAULT:
             logger.error("No YAML data found in %s and no default data given" % source)
             raise YamlReaderError("No YAML data found in %s" % source)
 

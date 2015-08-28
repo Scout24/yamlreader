@@ -79,6 +79,20 @@ class Test(unittest.TestCase):
     def test_should_return_default_data_if_invalid_dir_given(self):
         self.assertEqual(yaml_load("testdata", defaultdata={"foo":"bar"}), {"foo":"bar"})
 
+    def test_empty_directory_is_ok(self):
+        default_config = {'default': 'config'}
+        config = yaml_load("testdata/empty_yaml_dir", default_config)
+        self.assertEqual(config, default_config)
+
+    def test_falsy_default_config_works(self):
+        default_config = {}
+        config = yaml_load("testdata/empty_yaml_dir", default_config)
+        self.assertEqual(config, default_config)
+
+        default_config = None
+        config = yaml_load("testdata/empty_yaml_dir", default_config)
+        self.assertEqual(config, default_config)
+
     def test_merge_complex_list_to_list(self):
         self.assertEqual(data_merge([1, 2], [{1:2}, 1]), [1, 2, {1: 2}, 1])
         
