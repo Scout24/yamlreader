@@ -1,5 +1,5 @@
 __all__ = ["YamlReaderError", "yaml_load"]
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 
 from yaml import MarkedYAMLError, safe_load, safe_dump
 import glob
@@ -66,12 +66,12 @@ def yaml_load(source, defaultdata=NO_DEFAULT):
     source can be a file, a dir, a list/tuple of files or a string containing
     a glob expression (with ?*[]).
 
-    For a dir all *.yaml files will be read in alphabetical order.
+    For a directory, all *.yaml files will be read in alphabetical order.
 
     defaultdata can be used to initialize the data.
     """
     logger = logging.getLogger(__name__)
-    logger.debug("initilized with source=%s, defaultdata=%s" % (source, defaultdata))
+    logger.debug("initialized with source=%s, defaultdata=%s" % (source, defaultdata))
     if defaultdata is NO_DEFAULT:
         data = None
     else:
