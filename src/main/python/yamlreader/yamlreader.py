@@ -52,7 +52,7 @@ def data_merge(a, b):
                 raise YamlReaderError('Cannot merge non-dict "%s" into dict "%s"' % (b, a))
         else:
             raise YamlReaderError('NOT IMPLEMENTED "%s" into "%s"' % (b, a))
-    except TypeError, e:
+    except TypeError as e:
         raise YamlReaderError('TypeError "%s" in key "%s" when merging "%s" into "%s"' % (e, key, b, a))
     return a
 
@@ -105,7 +105,7 @@ def yaml_load(source, defaultdata=NO_DEFAULT):
                     logger.debug("YAML LOAD: %s" % new_data)
                 finally:
                     f.close()
-            except MarkedYAMLError, e:
+            except MarkedYAMLError as e:
                 logger.error("YAML Error: %s" % str(e))
                 raise YamlReaderError("YAML Error: %s" % str(e))
             if new_data is not None:
@@ -139,7 +139,7 @@ def __main():
     try:
         print safe_dump(yaml_load(args, defaultdata={}),
                         indent=4, default_flow_style=False, canonical=False)
-    except Exception, e:
+    except Exception as e:
         parser.error(e)
 
 if __name__ == "__main__":
