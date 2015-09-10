@@ -22,6 +22,7 @@ default_task = ["clean", "analyze", "publish"]
 @init
 def set_properties(project):
     project.depends_on("PyYAML")
+    project.depends_on("six")
 
     project.set_property('distutils_console_scripts', ['yamlreader=yamlreader:__main'])
 

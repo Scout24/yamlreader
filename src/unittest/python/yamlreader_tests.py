@@ -1,3 +1,5 @@
+from __future__ import print_function, absolute_import, unicode_literals, division
+
 import unittest
 import logging
 from yamlreader import data_merge, yaml_load, YamlReaderError

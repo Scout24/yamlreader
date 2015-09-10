@@ -1,3 +1,5 @@
+from __future__ import print_function, absolute_import, unicode_literals, division
+
 __all__ = ["YamlReaderError", "yaml_load"]
 __version__ = "3.0.1"
 
@@ -5,6 +7,7 @@ from yaml import MarkedYAMLError, safe_load, safe_dump
 import glob
 import os
 import logging
+import six
 
 
 class NoDefault(object):
@@ -29,7 +32,7 @@ def data_merge(a, b):
     # ## debug output
     # sys.stderr.write("DEBUG: %s to %s\n" %(b,a))
     try:
-        if a is None or isinstance(a, (str, unicode, int, long, float)):
+        if a is None or isinstance(a, (six.string_types, float, six.integer_types)):
             # border case for first run or if a is a primitive
             a = b
         elif isinstance(a, list):
@@ -137,8 +140,8 @@ def __main():
     if not args:
         parser.error("Need at least one argument")
     try:
-        print safe_dump(yaml_load(args, defaultdata={}),
-                        indent=4, default_flow_style=False, canonical=False)
+        print(safe_dump(yaml_load(args, defaultdata={}),
+                        indent=4, default_flow_style=False, canonical=False))
     except Exception as e:
         parser.error(e)
 
