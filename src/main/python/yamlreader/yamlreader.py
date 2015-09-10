@@ -6,12 +6,14 @@ import glob
 import os
 import logging
 
+
 class NoDefault(object):
     def __str__(self):
         return "No default data"
 
 
 NO_DEFAULT = NoDefault()
+
 
 class YamlReaderError(Exception):
     pass
@@ -27,7 +29,7 @@ def data_merge(a, b):
     # ## debug output
     # sys.stderr.write("DEBUG: %s to %s\n" %(b,a))
     try:
-        if a is None or isinstance(a, str) or isinstance(a, unicode) or isinstance(a, int) or isinstance(a, long) or isinstance(a, float):
+        if a is None or isinstance(a, (str, unicode, int, long, float)):
             # border case for first run or if a is a primitive
             a = b
         elif isinstance(a, list):
@@ -122,7 +124,8 @@ def __main():
                                    description="Merge YAML data from given files, dir or file glob",
                                    version="%" + "prog %s" % __version__,
                                    prog="yamlreader")
-    parser.add_option("--debug", dest="debug", action="store_true", default=False, help="Enable debug logging [%default]")
+    parser.add_option("--debug", dest="debug", action="store_true", default=False,
+                      help="Enable debug logging [%default]")
     options, args = parser.parse_args()
     if options.debug:
         logger = logging.getLogger()
