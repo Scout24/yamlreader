@@ -1,8 +1,6 @@
 import unittest
 import logging
-import sys
-from yamlreader import *
-from yamlreader import data_merge
+from yamlreader import data_merge, yaml_load, YamlReaderError
 
 
 class Test(unittest.TestCase):
@@ -119,7 +117,3 @@ class Test(unittest.TestCase):
 
     def test_fail_to_merge_list_to_dict(self):
         self.assertRaises(YamlReaderError,data_merge,{1:2},[3,2])
-
-if __name__ == "__main__":
-    # import sys;sys.argv = ['', 'Test.test_should_return_default_data_if_invalid_file_given']
-    unittest.main()
