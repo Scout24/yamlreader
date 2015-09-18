@@ -1,4 +1,4 @@
-from pybuilder.core import use_plugin, init, Author
+from pybuilder.core import use_plugin, init, task, depends, Author
 
 use_plugin("python.core")
 use_plugin("python.unittest")
@@ -32,3 +32,9 @@ def set_properties(project):
         "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
     ])
+
+
+@task
+@depends('prepare')
+def build_directory(project):
+    print project.expand_path("$dir_dist")
