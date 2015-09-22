@@ -1,3 +1,4 @@
+from __future__ import print_function, absolute_import, unicode_literals, division
 from pybuilder.core import use_plugin, init, task, depends, Author
 
 use_plugin("python.core")
@@ -37,4 +38,4 @@ def set_properties(project):
 @task
 @depends('prepare')
 def build_directory(project):
-    print project.expand_path("$dir_dist")
+    print(project.expand_path("$dir_dist"))
