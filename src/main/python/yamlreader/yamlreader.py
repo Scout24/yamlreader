@@ -73,7 +73,7 @@ def yaml_load(source, defaultdata=NO_DEFAULT):
     defaultdata can be used to initialize the data.
     """
     logger = logging.getLogger(__name__)
-    logger.debug("initialized with source=%s, defaultdata=%s" % (source, defaultdata))
+    logger.debug("initialized with source=%s, defaultdata=%s", source, defaultdata)
     if defaultdata is NO_DEFAULT:
         data = None
     else:
@@ -96,23 +96,23 @@ def yaml_load(source, defaultdata=NO_DEFAULT):
         # try to use the source as a glob
         files = sorted(glob.glob(source))
     if files:
-        logger.debug("Reading %s\n" % ", ".join(files))
+        logger.debug("Reading %s\n", ", ".join(files))
         for yaml_file in files:
             try:
                 try:
                     f = open(yaml_file)
                     new_data = safe_load(f)
-                    logger.debug("YAML LOAD: %s" % new_data)
+                    logger.debug("YAML LOAD: %s", new_data)
                 finally:
                     f.close()
             except MarkedYAMLError as e:
-                logger.error("YAML Error: %s" % str(e))
+                logger.error("YAML Error: %s", e)
                 raise YamlReaderError("YAML Error: %s" % str(e))
             if new_data is not None:
                 data = data_merge(data, new_data)
     else:
         if defaultdata is NO_DEFAULT:
-            logger.error("No YAML data found in %s and no default data given" % source)
+            logger.error("No YAML data found in %s and no default data given", source)
             raise YamlReaderError("No YAML data found in %s" % source)
 
     return data
