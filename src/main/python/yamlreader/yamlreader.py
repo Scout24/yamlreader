@@ -1,6 +1,7 @@
 from __future__ import print_function, absolute_import, unicode_literals, division
 
-from . import __version__
+__version__ = '3.0.2'
+
 from yaml import MarkedYAMLError, safe_load, safe_dump
 import glob
 import os
