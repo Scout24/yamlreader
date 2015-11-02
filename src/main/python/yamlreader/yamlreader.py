@@ -1,8 +1,5 @@
 from __future__ import print_function, absolute_import, unicode_literals, division
 
-__all__ = ["YamlReaderError", "yaml_load"]
-__version__ = "3.0.1"
-
 from yaml import MarkedYAMLError, safe_load, safe_dump
 import glob
 import os
