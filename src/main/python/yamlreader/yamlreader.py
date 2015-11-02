@@ -99,12 +99,9 @@ def yaml_load(source, defaultdata=NO_DEFAULT):
         logger.debug("Reading %s\n", ", ".join(files))
         for yaml_file in files:
             try:
-                try:
-                    f = open(yaml_file)
+                with open(yaml_file) as f:
                     new_data = safe_load(f)
-                    logger.debug("YAML LOAD: %s", new_data)
-                finally:
-                    f.close()
+                logger.debug("YAML LOAD: %s", new_data)
             except MarkedYAMLError as e:
                 logger.error("YAML Error: %s", e)
                 raise YamlReaderError("YAML Error: %s" % str(e))
