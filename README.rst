@@ -73,7 +73,7 @@ Wherever you had been using the ``safe_load`` function of
 the ``yamlreader.yaml_load`` function as a replacement to read all ``*.yaml``
 files in a directory::
 
-    from yamlreader import *
+    from yamlreader import yaml_load
 
     defaultconfig = {
             "loglevel" : "error",
