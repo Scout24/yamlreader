@@ -1,6 +1,6 @@
 from __future__ import print_function, absolute_import, unicode_literals, division
 
-__version__ = '3.0.2'
+__version__ = '3.0.3'
 
 from yaml import MarkedYAMLError, safe_load, safe_dump
 import glob

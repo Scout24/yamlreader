@@ -13,7 +13,7 @@ name = "yamlreader"
 summary = 'Merge YAML data from given files, dir or file glob'
 authors = [Author('Schlomo Schapiro', "schlomo.schapiro@immobilienscout24.de")]
 url = 'https://github.com/ImmobilienScout24/yamlreader'
-version = '3.0.2'
+version = '3.0.3'
 description = open("README.rst").read()
 license = 'Apache License 2.0'
 
