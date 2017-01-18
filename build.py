@@ -13,7 +13,7 @@ name = "yamlreader"
 summary = 'Merge YAML data from given files, dir or file glob'
 authors = [Author('Schlomo Schapiro', "schlomo.schapiro@immobilienscout24.de")]
 url = 'https://github.com/ImmobilienScout24/yamlreader'
-version = '3.0.3'
+version = '3.0.4'
 description = open("README.rst").read()
 license = 'Apache License 2.0'
 
@@ -25,7 +25,7 @@ def set_properties(project):
     project.depends_on("PyYAML")
     project.depends_on("six")
 
-    project.set_property('distutils_console_scripts', ['yamlreader=yamlreader:__main'])
+    project.set_property('distutils_console_scripts', ['yamlreader=yamlreader.yamlreader:__main'])
 
     project.set_property("distutils_classifiers", [
         "Programming Language :: Python",
