@@ -1,35 +1,36 @@
 from __future__ import print_function, absolute_import, unicode_literals, division
 
-__version__ = '3.0.3'
+__version__ = '3.1.0'
 
-from yaml import MarkedYAMLError, safe_load, safe_dump
+import ruamel.yaml as yaml
+from ruamel.yaml import MarkedYAMLError, safe_load, safe_dump
 import glob
 import os
+import sys
 import logging
 import six
 
-
-class NoDefault(object):
-    def __str__(self):
-        return "No default data"
-
-
-NO_DEFAULT = NoDefault()
+logger = logging.getLogger(__name__)
 
 
 class YamlReaderError(Exception):
-    pass
+    def __init__(self, msg=''):
+        super().__init__(msg)
+        logger.error(msg, sys.exc_info())
+
+    def __str__(str):
+        return self.msg
 
 
 def data_merge(a, b):
     """merges b into a and return merged result
     based on http://stackoverflow.com/questions/7204805/python-dictionaries-of-dictionaries-merge
-    and extended to also merge arrays and to replace the content of keys with the same name
+    and extended to also merge arrays (append) and dict keys replaced if having the same name.
 
     NOTE: tuples and arbitrary objects are not handled as it is totally ambiguous what should happen"""
     key = None
-    # ## debug output
-    # sys.stderr.write("DEBUG: %s to %s\n" %(b,a))
+
+    logger.debug("data_merge(): %s to %s\n" %(b,a))
     try:
         if a is None or isinstance(a, (six.string_types, float, six.integer_types)):
             # border case for first run or if a is a primitive
@@ -51,7 +52,7 @@ def data_merge(a, b):
                     else:
                         a[key] = b[key]
             else:
-                raise YamlReaderError('Cannot merge non-dict "%s" into dict "%s"' % (b, a))
+                raise YamlReaderError('UNSUPPORTED merge non-dict "%s" into dict "%s"' % (b, a))
         else:
             raise YamlReaderError('NOT IMPLEMENTED "%s" into "%s"' % (b, a))
     except TypeError as e:
@@ -59,87 +60,117 @@ def data_merge(a, b):
     return a
 
 
-def yaml_load(source, defaultdata=NO_DEFAULT):
-    """merge YAML data from files found in source
-
-    Always returns a dict. The YAML files are expected to contain some kind of
-    key:value structures, possibly deeply nested. When merging, lists are
-    appended and dict keys are replaced. The YAML files are read with the
-    yaml.safe_load function.
-
-    source can be a file, a dir, a list/tuple of files or a string containing
-    a glob expression (with ?*[]).
-
-    For a directory, all *.yaml files will be read in alphabetical order.
-
-    defaultdata can be used to initialize the data.
+def get_files(source, suffix='yaml'):
     """
-    logger = logging.getLogger(__name__)
-    logger.debug("initialized with source=%s, defaultdata=%s", source, defaultdata)
-    if defaultdata is NO_DEFAULT:
-        data = None
-    else:
-        data = defaultdata
+    source can be a file, a directory, a list/tuple of files or
+    a string containing a glob expression (with ?*[]).
+
+    For a directory, filenames of *.yaml will be read.
+    """
     files = []
-    if type(source) is not str and len(source) == 1:
-        # when called from __main source is always a list, even if it contains only one item.
-        # turn into a string if it contains only one item to support our different call modes
-        source = source[0]
+
     if type(source) is list or type(source) is tuple:
-        # got a list, assume to be files
-        files = source
-    elif os.path.isdir(source):
-        # got a dir, read all *.yaml files
-        files = sorted(glob.glob(os.path.join(source, "*.yaml")))
+        # when called from __main() as get_files(args, ...), 'source' is always a list of size >=0.
+        if len(source) == 1:
+            # turn into a string to evaluate further
+            source = source[0]
+        else:
+            for item in source:
+                # iterate to expand list of potential dirs and files
+                files.extend(get_files(item, suffix))
+            return files
+
+    if type(source) is not str or len(source) == 0 or source == '-':
+        return []
+
+    if os.path.isdir(source):
+        files = glob.glob(os.path.join(source, '*.' + suffix))
     elif os.path.isfile(source):
-        # got a single file, turn it into list to use the same code
+        # turn single file into list
         files = [source]
     else:
         # try to use the source as a glob
-        files = sorted(glob.glob(source))
-    if files:
-        logger.debug("Reading %s\n", ", ".join(files))
-        for yaml_file in files:
-            try:
-                with open(yaml_file) as f:
-                    new_data = safe_load(f)
-                logger.debug("YAML LOAD: %s", new_data)
-            except MarkedYAMLError as e:
-                logger.error("YAML Error: %s", e)
-                raise YamlReaderError("YAML Error: %s" % str(e))
-            if new_data is not None:
-                data = data_merge(data, new_data)
-    else:
-        if defaultdata is NO_DEFAULT:
-            logger.error("No YAML data found in %s and no default data given", source)
-            raise YamlReaderError("No YAML data found in %s" % source)
+        files = glob.glob(source)
 
-    return data
+    return files
 
 
 def __main():
     import optparse
-    parser = optparse.OptionParser(usage="%prog [options] source...",
-                                   description="Merge YAML data from given files, dir or file glob",
+    parser = optparse.OptionParser(usage="%prog [options] source ...",
+                                   description="Merge YAML data from given files, directory or glob",
                                    version="%" + "prog %s" % __version__,
-                                   prog="yamlreader")
-    parser.add_option("--debug", dest="debug", action="store_true", default=False,
-                      help="Enable debug logging [%default]")
-    options, args = parser.parse_args()
-    if options.debug:
-        logger = logging.getLogger()
-        loghandler = logging.StreamHandler()
-        loghandler.setFormatter(logging.Formatter('yamlreader: %(levelname)s: %(message)s'))
-        logger.addHandler(loghandler)
-        logger.setLevel(logging.DEBUG)
+                                   prog='yamlreader')
 
-    if not args:
-        parser.error("Need at least one argument")
+    parser.add_option('-d', '--debug', dest='debug', action='store_true', default=False,
+                      help="Enable debug logging [%default]")
+    parser.add_option('-t', '--indent', dest='indent', action='store', type='int', default=2,
+                      help="indent width [%default ]")
+    parser.add_option('--loader', dest='loader', action='store', default='safe',
+                      help="loader class [ %default ]")
+    parser.add_option('--dumper', dest='dumper', action='store', default='safe',
+                      help="dumper class [ %default ]")
+    # CloudFormation can't handle anchors
+    parser.add_option('-x', '--no-anchor', dest='no_anchor', action='store_true', default=False,
+                      help="unroll anchors and aliases [ %default ]")
+    parser.add_option('--sort-files', dest='sort_files', action='store_true', default=False,
+                      help="sort input filenames [ %default ]")
+    parser.add_option('-r', '--reverse', dest='reverse', action='store_true', default=False,
+                      help="sort direction [ %default ]")
+    parser.add_option('-k', '--sort-keys', dest='sort_keys', action='store_true', default=False,
+                      help="sort keys in dump [ %default ]")
+    parser.add_option('-l', '--logfile', dest='logfile', action='store', default=None)
+    parser.add_option('--suffix', dest='suffix', action='store', default='yaml')
+
     try:
-        print(safe_dump(yaml_load(args, defaultdata={}),
-                        indent=4, default_flow_style=False, canonical=False))
+        (options, args) = parser.parse_args()
     except Exception as e:
         parser.error(e)
 
+    log_handler = logging.StreamHandler(options.logfile)
+    log_handler.setFormatter(logging.Formatter('yamlreader: %(levelname)s: %(message)s'))
+    logger.addHandler(log_handler)
+    if options.debug:
+        logger.setLevel(logging.DEBUG)
+
+    # see http://yaml.readthedocs.io/en/latest/detail.html for examples
+    indent = {'mapping': options.indent, 'sequence': options.indent * 2, 'offset': options.indent}
+    data = None
+    files = get_files(args, options.suffix)
+
+    myaml = yaml.YAML(typ='safe')
+    myaml.preserve_quotes=True
+    myaml.default_flow_style=False
+    myaml.indent(mapping=indent['mapping'], sequence=indent['sequence'], offset=indent['offset'])
+    myaml.representer.ignore_aliases = lambda *args: True
+    # NOTICE! sort_keys *ONLY* works with matt's version
+    myaml.representer.sort_keys = options.sort_keys
+
+    if len(files) == 0:
+        # Hack! force at least 1 pass thru FOR loop and '' stands in for <STDIN>
+        files = ['']
+
+    for yaml_file in sorted(files, reverse=options.reverse) if options.sort_files else files:
+        logger.debug("Reading file %s\n", yaml_file)
+        try:
+            #new_data = yaml.load(open(yaml_file) if len(yaml_file) else sys.stdin, Loader=Loader, preserve_quotes=True)
+            new_data = myaml.load(open(yaml_file) if len(yaml_file) else sys.stdin)
+            logger.debug("YAML Load: %s", new_data)
+        except MarkedYAMLError as e:
+            # logger.exception("YAML Error: %s", e)
+            raise YamlReaderError("YAML Error: %s" % str(e))
+
+        if new_data is not None:
+            data = data_merge(data, new_data)
+
+    if not len(data):
+        logger.warn("No YAML data found in %s", source)
+    else:
+        try:
+            myaml.dump(data, sys.stdout)
+        except Exception as e:
+            logger.exception(e, sys.exc_info())
+
+        
 if __name__ == "__main__":
     __main()
