@@ -15,74 +15,109 @@ logger = logging.getLogger(__name__)
 
 
 class YamlReaderError(Exception):
-    def __init__(self, msg=''):
-        super().__init__(msg)
-        logger.error(msg, sys.exc_info())
+    """write YAML processing errors to logger"""
+    #TODO if I was called as a raise, then do super() otherwise stomp on that output since it ends up on STDOUT
+    def __init__(self, msg, *args, **kwargs):
+        level = logging.ERROR
 
-    def __str__(str):
-        return self.msg
+        if args:
+          level = args[0].upper() if isinstance(args[0], str) else args[0]
+        #TODO case statement to generate/modify strings so it's not buried in multiple
+        # places in code. eg. 'filenotfound' is easy case. msg == filename(s)
+        # try:
+        super().__init__(msg)
+        logger.log(level, '%s::%s', sys._getframe().f_back.f_code.co_name, msg,
+            exc_info=(logger.getEffectiveLevel() == logging.DEBUG), kwargs)
+
+        if (level == logging.FATAL):
+            sys.exit(1)
+
+        #TODO break out and differentiate as needed. some raise, others (all?) pass
+        pass
 
 
 def data_merge(a, b):
     """merges b into a and return merged result
+
     based on http://stackoverflow.com/questions/7204805/python-dictionaries-of-dictionaries-merge
     and extended to also merge arrays (append) and dict keys replaced if having the same name.
 
-    NOTE: tuples and arbitrary objects are not handled as it is totally ambiguous what should happen"""
+    NOTE: tuples and arbitrary objects are not handled as it is totally ambiguous what should happen
+    """
     key = None
 
-    logger.debug("data_merge(): %s to %s\n" %(b,a))
+    #logger.debug('Attempting merge of "%s" into "%s"\n' % (b, a))
     try:
+        # border case for first run or if a is a primitive
         if a is None or isinstance(a, (six.string_types, float, six.integer_types)):
-            # border case for first run or if a is a primitive
             a = b
         elif isinstance(a, list):
-            # lists can be only appended
-            if isinstance(b, list):
-                # merge lists
-                a.extend(b)
-            else:
-                # append to list
-                a.append(b)
+            a.extend(b) if isinstance(b, list) else a.append(b)
+            a = list(set(a))
         elif isinstance(a, dict):
             # dicts must be merged
             if isinstance(b, dict):
                 for key in b:
-                    if key in a:
-                        a[key] = data_merge(a[key], b[key])
-                    else:
-                        a[key] = b[key]
+                    a[key] = data_merge(a[key], b[key]) if key in a else b[key]
             else:
-                raise YamlReaderError('UNSUPPORTED merge non-dict "%s" into dict "%s"' % (b, a))
+                raise TypeError
         else:
-            raise YamlReaderError('NOT IMPLEMENTED "%s" into "%s"' % (b, a))
-    except TypeError as e:
-        raise YamlReaderError('TypeError "%s" in key "%s" when merging "%s" into "%s"' % (e, key, b, a))
+            raise TypeError
+
+#----- original
+        # if a is None or isinstance(a, (six.string_types, float, six.integer_types)):
+            # # border case for first run or if a is a primitive
+            # a = b
+        # elif isinstance(a, list):
+            # # lists can be only appended
+            # if isinstance(b, list):
+                # # merge lists
+                # a.extend(b)
+            # else:
+                # # append to list
+                # a.append(b)
+        # elif isinstance(a, dict):
+            # # dicts must be merged
+            # if isinstance(b, dict):
+                # for key in b:
+                    # if key in a:
+                        # a[key] = data_merge(a[key], b[key])
+                    # else:
+                        # a[key] = b[key]
+            # else:
+                # raise YamlReaderError('Illegal - %s into %s\n  "%s" -> "%s"' %
+                    # (type(b), type(a), b, a), logging.WARNING)
+        # else:
+            # raise YamlReaderError('TODO - %s into %s\n  "%s" -> "%s"' %
+                # (type(b), type(a), b, a), logging.WARNING)
+    except (TypeError, LookupError) as e:
+        raise YamlReaderError('caught %r merging %r into %r\n  "%s" -> "%s"' % 
+            (e, type(b), type(a), b, a), logging.WARNING)
+            # or str(e) also with e.__name__ ?
+
     return a
 
 
 def get_files(source, suffix='yaml'):
-    """
+    """Examine path elements for files to processing
+
     source can be a file, a directory, a list/tuple of files or
     a string containing a glob expression (with ?*[]).
 
-    For a directory, filenames of *.yaml will be read.
+    For a directory, filenames of $suffix will be read.
     """
+
     files = []
 
-    if type(source) is list or type(source) is tuple:
-        # when called from __main() as get_files(args, ...), 'source' is always a list of size >=0.
-        if len(source) == 1:
-            # turn into a string to evaluate further
-            source = source[0]
-        else:
-            for item in source:
-                # iterate to expand list of potential dirs and files
-                files.extend(get_files(item, suffix))
-            return files
+    if source is None or len(source) == 0 or source == '-':
+        return ['']
 
-    if type(source) is not str or len(source) == 0 or source == '-':
-        return []
+    #if type(source) is list or type(source) is tuple:
+    if isinstance(source, list) or isinstance(source, tuple):
+        for item in source:
+            # iterate to expand list of potential dirs and files
+            files.extend(get_files(item, suffix))
+        return files
 
     if os.path.isdir(source):
         files = glob.glob(os.path.join(source, '*.' + suffix))
