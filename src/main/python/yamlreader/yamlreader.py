@@ -128,85 +128,134 @@ def get_files(source, suffix='yaml'):
         # try to use the source as a glob
         files = glob.glob(source)
 
+    if len(files) == 0:
+        YamlReaderError('FileNotFoundError for %r' % (source), logging.WARNING)
+
     return files
 
 
 def __main():
     import optparse
     parser = optparse.OptionParser(usage="%prog [options] source ...",
-                                   description="Merge YAML data from given files, directory or glob",
+                                   description='Merge YAML data from files, directory or glob',
                                    version="%" + "prog %s" % __version__,
                                    prog='yamlreader')
 
     parser.add_option('-d', '--debug', dest='debug', action='store_true', default=False,
-                      help="Enable debug logging [%default]")
-    parser.add_option('-t', '--indent', dest='indent', action='store', type='int', default=2,
-                      help="indent width [%default ]")
-    parser.add_option('--loader', dest='loader', action='store', default='safe',
-                      help="loader class [ %default ]")
-    parser.add_option('--dumper', dest='dumper', action='store', default='safe',
-                      help="dumper class [ %default ]")
-    # CloudFormation can't handle anchors
-    parser.add_option('-x', '--no-anchor', dest='no_anchor', action='store_true', default=False,
-                      help="unroll anchors and aliases [ %default ]")
-    parser.add_option('--sort-files', dest='sort_files', action='store_true', default=False,
-                      help="sort input filenames [ %default ]")
-    parser.add_option('-r', '--reverse', dest='reverse', action='store_true', default=False,
-                      help="sort direction [ %default ]")
-    parser.add_option('-k', '--sort-keys', dest='sort_keys', action='store_true', default=False,
-                      help="sort keys in dump [ %default ]")
+                      help="Enable debug logging   (true *%default*)")
+    parser.add_option('-v', '--verbose', dest='verbose', action='store_true', default=False,
+                      help="write progress         (true *%default*)")
+
     parser.add_option('-l', '--logfile', dest='logfile', action='store', default=None)
+    parser.add_option('--log', dest='loglevel', action='store', default='INFO',
+                      help="(DEBUG *%default WARNING ERROR CRITICAL)")
+
+                      # CloudFormation can't handle anchors or aliases (sep '17)
+    parser.add_option('-x', '--no-anchor', dest='no_anchor', action='store_true', default=False,
+                      help="unroll anchors/aliases (true *%default)")
+    parser.add_option('-u', '--duplicate-keys', dest='duplicate_keys', action='store_true', default=False,
+                      help="allow duplicate keys   (true *%default)")
+
+    parser.add_option('-k', '--sort-keys', dest='sort_keys', action='store_true', default=False,
+                      help="sort keys in dump      (true *%default)")
+    parser.add_option('--sort-files', dest='sort_files', action='store_true', default=False,
+                      help="sort input filenames   (true *%default)")
+    parser.add_option('-r', '--reverse', dest='reverse', action='store_true', default=False,
+                      help="sort direction         (true *%default)")
+
     parser.add_option('--suffix', dest='suffix', action='store', default='yaml')
+    parser.add_option('-t', '--indent', dest='indent', action='store', type=int, default=2,
+                      help="indent width           (%default)")
+    parser.add_option('--loader', dest='loader', action='store', default='safe',
+                      help="loader class           (base *%default roundtrip unsafe)")
+
 
     try:
         (options, args) = parser.parse_args()
     except Exception as e:
         parser.error(e)
 
-    log_handler = logging.StreamHandler(options.logfile)
-    log_handler.setFormatter(logging.Formatter('yamlreader: %(levelname)s: %(message)s'))
+    # mangle options.loader for API consuption
+    options.loader= options.loader.lower()
+    if options.loader == 'roundtrip':
+        options.loader = 'rt'
+
+    if isinstance(options.loglevel, str):
+        options.loglevel = options.loglevel.upper()
+
+
+    if options.logfile:
+        log_handler = logging.FileHandler(options.logfile, mode='w')
+    else:
+        log_handler = logging.StreamHandler()
+    log_handler.setFormatter(logging.Formatter('yamlreader: %(levelname)9s  %(message)s'))
     logger.addHandler(log_handler)
+    logger.propagate = False
     if options.debug:
         logger.setLevel(logging.DEBUG)
+    else:
+        # in 3.2+ we can do
+        #logger.setLevel(options.loglevel)
+        logger.setLevel(getattr(logging, options.loglevel, logging.INFO))
+
+        # remove Traceback output in Verbose, squelch stacktrace all other times
+        # if options.verbose:
+            # sys.excepthook = lambda exctype,exc,traceback : print("{}: {}".format(exctype.__name__, exc))
+        # else:
+            # sys.excepthook = lambda *args: None
 
     # see http://yaml.readthedocs.io/en/latest/detail.html for examples
-    indent = {'mapping': options.indent, 'sequence': options.indent * 2, 'offset': options.indent}
-    data = None
-    files = get_files(args, options.suffix)
+    data = new_data = None
 
-    myaml = yaml.YAML(typ='safe')
+    files = get_files(args, options.suffix)
+    if len(files) == 0:
+        #raise YamlReaderError('%s: "%s"' % (FileNotFoundError.__name__, str(args)), 'CRITICAL')
+        raise YamlReaderError('No files found! %s' % str(args), logging.FATAL)
+        # FATAL ==> not reached
+
+    indent = {
+        'mapping' : options.indent,
+        'sequence': options.indent * 2,
+        'offset'  : options.indent
+        }
+
+    myaml = yaml.YAML(typ=options.loader)
     myaml.preserve_quotes=True
     myaml.default_flow_style=False
+    myaml.allow_duplicate_keys = options.duplicate_keys
     myaml.indent(mapping=indent['mapping'], sequence=indent['sequence'], offset=indent['offset'])
     myaml.representer.ignore_aliases = lambda *args: True
-    # NOTICE! sort_keys *ONLY* works with matt's version
-    myaml.representer.sort_keys = options.sort_keys
 
-    if len(files) == 0:
-        # Hack! force at least 1 pass thru FOR loop and '' stands in for <STDIN>
-        files = ['']
+    # NOTICE! sort_keys is a noop unless using Matt's version of
+    # Ruamel's YAML library (https://bitbucket.org/tb3088/yaml)
+    if hasattr(myaml.representer, 'sort_keys'):
+        myaml.representer.sort_keys = options.sort_keys
 
     for yaml_file in sorted(files, reverse=options.reverse) if options.sort_files else files:
-        logger.debug("Reading file %s\n", yaml_file)
+        if options.verbose:
+            logger.info('Reading file "%s"', yaml_file)
         try:
-            #new_data = yaml.load(open(yaml_file) if len(yaml_file) else sys.stdin, Loader=Loader, preserve_quotes=True)
             new_data = myaml.load(open(yaml_file) if len(yaml_file) else sys.stdin)
-            logger.debug("YAML Load: %s", new_data)
-        except MarkedYAMLError as e:
-            # logger.exception("YAML Error: %s", e)
-            raise YamlReaderError("YAML Error: %s" % str(e))
+            logger.debug('Payload: %r\n', new_data)
+        except (yaml.MarkedYAMLError) as e:
+            logger.warning('YAML.load() -- %s' % str(e))
+            #raise YamlReaderError('YAML.load() -- %s' % str(e))
 
-        if new_data is not None:
+        if new_data: # is not None:
             data = data_merge(data, new_data)
+        else:
+            logger.warning('No YAML data found in "%s"', yaml_file)
 
-    if not len(data):
-        logger.warn("No YAML data found in %s", source)
-    else:
-        try:
-            myaml.dump(data, sys.stdout)
-        except Exception as e:
-            logger.exception(e, sys.exc_info())
+    if data is None or len(data) == 0:
+        logger.critical('No YAML data found anywhere!')
+        return 1
+
+    try:
+        myaml.dump(data, sys.stdout)
+    except yaml.MarkedYAMLError as e:
+        raise YamlReaderError('YAML.dump() -- %s' % str(e))
+        #YamlReaderError("YAML.dump(): %s" % str(e))
 
         
 if __name__ == "__main__":
-    __main()
+    sys.exit(__main())
