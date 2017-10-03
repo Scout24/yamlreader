@@ -64,32 +64,6 @@ def data_merge(a, b):
         else:
             raise TypeError
 
-#----- original
-        # if a is None or isinstance(a, (six.string_types, float, six.integer_types)):
-            # # border case for first run or if a is a primitive
-            # a = b
-        # elif isinstance(a, list):
-            # # lists can be only appended
-            # if isinstance(b, list):
-                # # merge lists
-                # a.extend(b)
-            # else:
-                # # append to list
-                # a.append(b)
-        # elif isinstance(a, dict):
-            # # dicts must be merged
-            # if isinstance(b, dict):
-                # for key in b:
-                    # if key in a:
-                        # a[key] = data_merge(a[key], b[key])
-                    # else:
-                        # a[key] = b[key]
-            # else:
-                # raise YamlReaderError('Illegal - %s into %s\n  "%s" -> "%s"' %
-                    # (type(b), type(a), b, a), logging.WARNING)
-        # else:
-            # raise YamlReaderError('TODO - %s into %s\n  "%s" -> "%s"' %
-                # (type(b), type(a), b, a), logging.WARNING)
     except (TypeError, LookupError) as e:
         raise YamlReaderError('caught %r merging %r into %r\n  "%s" -> "%s"' % 
             (e, type(b), type(a), b, a), logging.WARNING)
