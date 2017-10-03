@@ -1,9 +1,10 @@
+#!env python3
+
 from __future__ import print_function, absolute_import, unicode_literals, division
 
 __version__ = '3.1.0'
 
 import ruamel.yaml as yaml
-from ruamel.yaml import MarkedYAMLError, safe_load, safe_dump
 import glob
 import os
 import sys
