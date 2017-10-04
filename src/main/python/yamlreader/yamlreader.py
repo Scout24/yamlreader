@@ -28,7 +28,7 @@ class YamlReaderError(Exception):
         # try:
         super().__init__(msg)
         logger.log(level, '%s::%s', sys._getframe().f_back.f_code.co_name, msg,
-            exc_info=(logger.getEffectiveLevel() == logging.DEBUG), kwargs)
+            exc_info=(logger.getEffectiveLevel() == logging.DEBUG), **kwargs)
 
         if (level == logging.FATAL):
             sys.exit(1)
@@ -229,12 +229,15 @@ def __main():
 
     try:
         if options.json:
-            json.dump(data, sys.stdout)
+            json.dump(data, sys.stdout, indent=indent['mapping'])
         else:
             myaml.dump(data, sys.stdout)
     except yaml.MarkedYAMLError as e:
         raise YamlReaderError('YAML.dump() -- %s' % str(e))
         #YamlReaderError("YAML.dump(): %s" % str(e))
+    except (ValueError, OverflowError, TypeError):
+        # JSON dump might trigger
+        pass
 
         
 if __name__ == "__main__":
