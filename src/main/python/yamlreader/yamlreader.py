@@ -5,6 +5,7 @@ from __future__ import print_function, absolute_import, unicode_literals, divisi
 __version__ = '3.1.0'
 
 import ruamel.yaml as yaml
+import json
 import glob
 import os
 import sys
@@ -124,6 +125,8 @@ def __main():
     parser.add_option('--log', dest='loglevel', action='store', default='INFO',
                       help="(DEBUG *%default WARNING ERROR CRITICAL)")
 
+    parser.add_option('-j', '--json', dest='json', action='store_true', default=False,
+                      help="output to JSON (true *%default)")
                       # CloudFormation can't handle anchors or aliases (sep '17)
     parser.add_option('-x', '--no-anchor', dest='no_anchor', action='store_true', default=False,
                       help="unroll anchors/aliases (true *%default)")
@@ -225,7 +228,10 @@ def __main():
         return 1
 
     try:
-        myaml.dump(data, sys.stdout)
+        if options.json:
+            json.dump(data, sys.stdout)
+        else:
+            myaml.dump(data, sys.stdout)
     except yaml.MarkedYAMLError as e:
         raise YamlReaderError('YAML.dump() -- %s' % str(e))
         #YamlReaderError("YAML.dump(): %s" % str(e))
