@@ -37,7 +37,7 @@ class YamlReaderError(Exception):
         pass
 
 
-def data_merge(a, b):
+def data_merge(a, b, merge=True):
     """merges b into a and return merged result
 
     based on http://stackoverflow.com/questions/7204805/python-dictionaries-of-dictionaries-merge
@@ -50,7 +50,8 @@ def data_merge(a, b):
     #logger.debug('Attempting merge of "%s" into "%s"\n' % (b, a))
     try:
         # border case for first run or if a is a primitive
-        if a is None or isinstance(a, (six.string_types, float, six.integer_types)):
+        if a is None or merge == False or \
+                isinstance(a, (six.string_types, float, six.integer_types)):
             a = b
         elif isinstance(a, list):
             a.extend(b) if isinstance(b, list) else a.append(b)
@@ -127,6 +128,10 @@ def __main():
 
     parser.add_option('-j', '--json', dest='json', action='store_true', default=False,
                       help="output to JSON (true *%default)")
+    parser.add_option('-m', '--merge', dest='merge', action='store_true', default=True,
+                      help="merge a key's values (*%default false)")
+    parser.add_option('--overwrite', dest='merge', action='store_false',
+                      help="overwrite a key's values (true *false)")
                       # CloudFormation can't handle anchors or aliases (sep '17)
     parser.add_option('-x', '--no-anchor', dest='no_anchor', action='store_true', default=False,
                       help="unroll anchors/aliases (true *%default)")
@@ -219,7 +224,7 @@ def __main():
             #raise YamlReaderError('YAML.load() -- %s' % str(e))
 
         if new_data: # is not None:
-            data = data_merge(data, new_data)
+            data = data_merge(data, new_data, options.merge)
         else:
             logger.warning('No YAML data found in "%s"', yaml_file)
 
