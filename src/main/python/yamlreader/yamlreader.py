@@ -6,11 +6,9 @@ __version__ = '3.1.0'
 
 import ruamel.yaml as yaml
 import json
-import glob
 import os
 import sys
 import logging
-import six
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +43,8 @@ def data_merge(a, b, merge=True):
 
     NOTE: tuples and arbitrary objects are not handled as it is totally ambiguous what should happen
     """
+
+    import six
     key = None
 
     #logger.debug('Attempting merge of "%s" into "%s"\n' % (b, a))
@@ -83,6 +83,7 @@ def get_files(source, suffix='yaml'):
     For a directory, filenames of $suffix will be read.
     """
 
+    import glob
     files = []
 
     if source is None or len(source) == 0 or source == '-':
@@ -111,45 +112,73 @@ def get_files(source, suffix='yaml'):
 
 
 def __main():
-    import optparse
+    import optparse, textwrap
+
     parser = optparse.OptionParser(usage="%prog [options] source ...",
-                                   description='Merge YAML data from files, directory or glob',
-                                   version="%" + "prog %s" % __version__,
-                                   prog='yamlreader')
+                description='Merge YAML/JSON elements from Files, Directories, or Glob pattern',
+                version="%" + "prog %s" % __version__, prog='yamlreader')
 
-    parser.add_option('-d', '--debug', dest='debug', action='store_true', default=False,
-                      help="Enable debug logging   (true *%default*)")
-    parser.add_option('-v', '--verbose', dest='verbose', action='store_true', default=False,
-                      help="write progress         (true *%default*)")
+    parser.add_option('-d', '--debug', dest='debug',
+            action='store_true', default=False,
+            help="Enable debug logging   (true *%default*)")
 
-    parser.add_option('-l', '--logfile', dest='logfile', action='store', default=None)
-    parser.add_option('--log', dest='loglevel', action='store', default='INFO',
-                      help="(DEBUG *%default WARNING ERROR CRITICAL)")
+    parser.add_option('-v', '--verbose', dest='verbose',
+            action='store_true', default=False,
+            help="write progress         (true *%default*)")
 
-    parser.add_option('-j', '--json', dest='json', action='store_true', default=False,
-                      help="output to JSON (true *%default)")
-    parser.add_option('-m', '--merge', dest='merge', action='store_true', default=True,
-                      help="merge a key's values (*%default false)")
-    parser.add_option('--overwrite', dest='merge', action='store_false',
-                      help="overwrite a key's values (true *false)")
+    parser.add_option('-q', '--quiet', dest='verbose',
+            action='store_false',
+            help="minimize output        (*True false)")
+
+    parser.add_option('-l', '--logfile', dest='logfile',
+            action='store', default=None)
+
+    parser.add_option('--log', dest='loglevel',
+            action='store', default='INFO',
+            help="(DEBUG *%default WARNING ERROR CRITICAL)")
+
+    parser.add_option('-j', '--json', dest='json',
+            action='store_true', default=False,
+            help="output to JSON (true *%default)")
+
+    parser.add_option('-m', '--merge', dest='merge',
+            action='store_true', default=True,
+            help="merge a key's values (*%default false)")
+
+    parser.add_option('--overwrite', dest='merge',
+            action='store_false',
+            help="overwrite a key's values (true *false)")
                       # CloudFormation can't handle anchors or aliases (sep '17)
-    parser.add_option('-x', '--no-anchor', dest='no_anchor', action='store_true', default=False,
-                      help="unroll anchors/aliases (true *%default)")
-    parser.add_option('-u', '--duplicate-keys', dest='duplicate_keys', action='store_true', default=False,
-                      help="allow duplicate keys   (true *%default)")
+    parser.add_option('-x', '--no-anchor', dest='no_anchor',
+            action='store_true', default=False,
+            help="unroll anchors/aliases (true *%default)")
 
-    parser.add_option('-k', '--sort-keys', dest='sort_keys', action='store_true', default=False,
-                      help="sort keys in dump      (true *%default)")
-    parser.add_option('--sort-files', dest='sort_files', action='store_true', default=False,
-                      help="sort input filenames   (true *%default)")
-    parser.add_option('-r', '--reverse', dest='reverse', action='store_true', default=False,
-                      help="sort direction         (true *%default)")
+    parser.add_option('-u', '--duplicate-keys', dest='duplicate_keys',
+            action='store_true', default=False,
+            help="allow duplicate keys   (true *%default)")
 
-    parser.add_option('--suffix', dest='suffix', action='store', default='yaml')
-    parser.add_option('-t', '--indent', dest='indent', action='store', type=int, default=2,
-                      help="indent width           (%default)")
-    parser.add_option('--loader', dest='loader', action='store', default='safe',
-                      help="loader class           (base *%default roundtrip unsafe)")
+    parser.add_option('-r', '--reverse', dest='reverse',
+            action='store_true', default=False,
+            help="sort direction         (true *%default)")
+
+    parser.add_option('-k', '--sort-keys', dest='sort_keys',
+            action='store_true', default=False,
+            help="sort keys in dump      (true *%default)")
+
+    parser.add_option('--sort-files', dest='sort_files',
+            action='store_true', default=False,
+            help="sort input filenames   (true *%default)")
+
+    parser.add_option('--suffix', dest='suffix',
+            action='store', default='yaml')
+
+    parser.add_option('-t', '--indent', dest='indent',
+            action='store', type=int, default=2,
+            help="indent width           (%default)")
+
+    parser.add_option('--loader', dest='loader',
+            action='store', default='safe',
+            help="loader class           (base *%default roundtrip unsafe)")
 
 
     try:
