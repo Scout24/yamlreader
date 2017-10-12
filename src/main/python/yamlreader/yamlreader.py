@@ -6,7 +6,6 @@ __version__ = '3.1.0'
 
 import ruamel.yaml as yaml
 import json
-import os
 import sys
 import logging
 
@@ -83,7 +82,7 @@ def get_files(source, suffix='yaml'):
     For a directory, filenames of $suffix will be read.
     """
 
-    import glob
+    import os, glob
     files = []
 
     if source is None or len(source) == 0 or source == '-':
@@ -135,7 +134,7 @@ def __main():
 
     parser.add_option('--log', dest='loglevel',
             action='store', default='INFO',
-            help="(DEBUG *%default WARNING ERROR CRITICAL)")
+            help="(debug *%default warning error critical)")
 
     parser.add_option('-j', '--json', dest='json',
             action='store_true', default=False,
@@ -221,7 +220,7 @@ def __main():
     files = get_files(args, options.suffix)
     if len(files) == 0:
         #raise YamlReaderError('%s: "%s"' % (FileNotFoundError.__name__, str(args)), 'CRITICAL')
-        raise YamlReaderError('No files found! %s' % str(args), logging.FATAL)
+        raise YamlReaderError('No source files found! %s' % str(args), logging.FATAL)
         # FATAL ==> not reached
 
     indent = {
