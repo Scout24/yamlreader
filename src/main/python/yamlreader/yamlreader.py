@@ -1,13 +1,18 @@
-#!env python3
-
+# $Id$
 from __future__ import print_function, absolute_import, unicode_literals, division
 
 __version__ = '3.1.0'
-
-import ruamel.yaml as yaml
-import json
+#TODO rename file as __init__
+#import ruamel.yaml as yaml
 import sys
 import logging
+
+
+__defaults = dict(
+        debug=False, verbose=False, logfile='', loglevel=logging.ERROR,
+        json=False, merge=True, no_anchor=True, dup_keys=False, reverse=False,
+        sort_keys=False, sort_files=False, suffix='yaml', indent=2, loader='safe'
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +27,7 @@ class YamlReaderError(Exception):
           level = args[0].upper() if isinstance(args[0], str) else args[0]
         #TODO case statement to generate/modify strings so it's not buried in multiple
         # places in code. eg. 'filenotfound' is easy case. msg == filename(s)
+        # TODO invoke via 'raise YamlReaderError(msg, level) from FileNotFoundError'?
         # try:
         super().__init__(msg)
         logger.log(level, '%s::%s', sys._getframe().f_back.f_code.co_name, msg,
@@ -33,7 +39,7 @@ class YamlReaderError(Exception):
         #TODO break out and differentiate as needed. some raise, others (all?) pass
         pass
 
-
+#TODO rename to just merge
 def data_merge(a, b, merge=True):
     """merges b into a and return merged result
 
@@ -46,21 +52,23 @@ def data_merge(a, b, merge=True):
     import six
     key = None
 
-    #logger.debug('Attempting merge of "%s" into "%s"\n' % (b, a))
+    #logger.trace('Attempting merge of "%s" into "%s"\n' % (b, a))
     try:
         # border case for first run or if a is a primitive
-        if a is None or merge == False or \
-                isinstance(a, (six.string_types, float, six.integer_types)):
+        if a is None or isinstance(a, (six.string_types, float, six.integer_types)):
             a = b
         elif isinstance(a, list):
             a.extend(b) if isinstance(b, list) else a.append(b)
             a = list(set(a))
         elif isinstance(a, dict):
-            # dicts must be merged
-            if isinstance(b, dict):
+            if not merge:
+                a.update(b)
+            elif isinstance(b, dict):
                 for key in b:
                     a[key] = data_merge(a[key], b[key]) if key in a else b[key]
             else:
+                # XXX technically a Tuple or List of at least 2 wide
+                # could be used with [0] as key, [1] as value
                 raise TypeError
         else:
             raise TypeError
@@ -105,108 +113,128 @@ def get_files(source, suffix='yaml'):
         files = glob.glob(source)
 
     if len(files) == 0:
-        YamlReaderError('FileNotFoundError for %r' % (source), logging.WARNING)
+        YamlReaderError('FileNotFoundError for "%r"' % source, logging.WARNING)
 
     return files
 
 
-def __main():
-    import optparse, textwrap
+def parse_cmdline():
+    import optparse
+#    global options, files
 
     parser = optparse.OptionParser(usage="%prog [options] source ...",
                 description='Merge YAML/JSON elements from Files, Directories, or Glob pattern',
                 version="%" + "prog %s" % __version__, prog='yamlreader')
+    parser.disable_interspersed_args()
 
     parser.add_option('-d', '--debug', dest='debug',
-            action='store_true', default=False,
+            action='store_true', default=__defaults['debug'],
             help="Enable debug logging   (true *%default*)")
 
     parser.add_option('-v', '--verbose', dest='verbose',
-            action='store_true', default=False,
-            help="write progress         (true *%default*)")
+            action='store_true', default=__defaults['verbose'],
+            help="show progress          (true *%default*)")
 
     parser.add_option('-q', '--quiet', dest='verbose',
             action='store_false',
             help="minimize output        (*True false)")
 
     parser.add_option('-l', '--logfile', dest='logfile',
-            action='store', default=None)
+            action='store', default=__defaults['logfile'])
 
-    parser.add_option('--log', dest='loglevel',
-            action='store', default='INFO',
+    parser.add_option('--level', dest='loglevel',
+            action='store', default=__defaults['loglevel'],
             help="(debug *%default warning error critical)")
 
     parser.add_option('-j', '--json', dest='json',
-            action='store_true', default=False,
+            action='store_true', default=__defaults['json'],
             help="output to JSON (true *%default)")
 
     parser.add_option('-m', '--merge', dest='merge',
-            action='store_true', default=True,
+            action='store_true', default=__defaults['merge'],
             help="merge a key's values (*%default false)")
 
     parser.add_option('--overwrite', dest='merge',
             action='store_false',
-            help="overwrite a key's values (true *false)")
-                      # CloudFormation can't handle anchors or aliases (sep '17)
+            help="overwrite a key's values (true *False)")
+
+    # CloudFormation can't handle anchors or aliases (sep '17)
     parser.add_option('-x', '--no-anchor', dest='no_anchor',
-            action='store_true', default=False,
+            action='store_true', default=__defaults['no_anchor'],
             help="unroll anchors/aliases (true *%default)")
 
-    parser.add_option('-u', '--duplicate-keys', dest='duplicate_keys',
-            action='store_true', default=False,
+    parser.add_option('-u', '--duplicate-keys', dest='dup_keys',
+            action='store_true', default=__defaults['dup_keys'],
             help="allow duplicate keys   (true *%default)")
 
     parser.add_option('-r', '--reverse', dest='reverse',
-            action='store_true', default=False,
+            action='store_true', default=__defaults['reverse'],
             help="sort direction         (true *%default)")
 
     parser.add_option('-k', '--sort-keys', dest='sort_keys',
-            action='store_true', default=False,
+            action='store_true', default=__defaults['sort_keys'],
             help="sort keys in dump      (true *%default)")
 
     parser.add_option('--sort-files', dest='sort_files',
-            action='store_true', default=False,
+            action='store_true', default=__defaults['sort_files'],
             help="sort input filenames   (true *%default)")
 
     parser.add_option('--suffix', dest='suffix',
-            action='store', default='yaml')
+            action='store', default=__defaults['suffix'])
 
     parser.add_option('-t', '--indent', dest='indent',
-            action='store', type=int, default=2,
+            action='store', type=int, default=__defaults['indent'],
             help="indent width           (%default)")
 
     parser.add_option('--loader', dest='loader',
-            action='store', default='safe',
+            action='store', default=__defaults['loader'],
             help="loader class           (base *%default roundtrip unsafe)")
 
-
     try:
-        (options, args) = parser.parse_args()
+#        (options, files) = parser.parse_args()
+        return parser.parse_args()
     except Exception as e:
         parser.error(e)
 
-    # mangle options.loader for API consuption
-    options.loader= options.loader.lower()
+
+def main(options, *argv):
+    from optparse import Values
+    import ruamel.yaml as yaml
+    import json
+
+    if isinstance(options, Values):
+        for k, v in __defaults.items():
+            options.ensure_value(k, v)
+    elif options is None:
+        options = Values(__defaults)
+    elif isinstance(options, dict):
+        options = Values(__defaults.update(options))
+    else:
+        raise YamlReaderError('TypeError - "options" (%s)' % type(options))
+        return 1
+
+    # adjust 'loader' because Ruamel's cryptic short name
     if options.loader == 'roundtrip':
         options.loader = 'rt'
 
+    # adjust 'loglevel' since typing ALLCAPS is annoying
     if isinstance(options.loglevel, str):
         options.loglevel = options.loglevel.upper()
-
 
     if options.logfile:
         log_handler = logging.FileHandler(options.logfile, mode='w')
     else:
         log_handler = logging.StreamHandler()
+
     log_handler.setFormatter(logging.Formatter('yamlreader: %(levelname)9s  %(message)s'))
     logger.addHandler(log_handler)
     logger.propagate = False
+
     if options.debug:
         logger.setLevel(logging.DEBUG)
     else:
-        # in 3.2+ we can do
-        #logger.setLevel(options.loglevel)
-        logger.setLevel(getattr(logging, options.loglevel, logging.INFO))
+        logger.setLevel(options.loglevel)
+        #logger.setLevel(getattr(logging, options.loglevel, logging.INFO))
 
         # remove Traceback output in Verbose, squelch stacktrace all other times
         # if options.verbose:
@@ -217,11 +245,12 @@ def __main():
     # see http://yaml.readthedocs.io/en/latest/detail.html for examples
     data = new_data = None
 
-    files = get_files(args, options.suffix)
+    #TODO break this into a function. process_file()?
+    files = get_files(argv, options.suffix)
     if len(files) == 0:
-        #raise YamlReaderError('%s: "%s"' % (FileNotFoundError.__name__, str(args)), 'CRITICAL')
-        raise YamlReaderError('No source files found! %s' % str(args), logging.FATAL)
-        # FATAL ==> not reached
+        #raise YamlReaderError('%s: "%s"' % (FileNotFoundError.__name__, str(argv)), 'CRITICAL')
+        raise YamlReaderError('No source files found! %s' % str(argv), logging.ERROR)
+        return 2
 
     indent = {
         'mapping' : options.indent,
@@ -232,11 +261,11 @@ def __main():
     myaml = yaml.YAML(typ=options.loader)
     myaml.preserve_quotes=True
     myaml.default_flow_style=False
-    myaml.allow_duplicate_keys = options.duplicate_keys
+    myaml.allow_duplicate_keys = options.dup_keys
     myaml.indent(mapping=indent['mapping'], sequence=indent['sequence'], offset=indent['offset'])
     myaml.representer.ignore_aliases = lambda *args: True
 
-    # NOTICE! sort_keys is a noop unless using Matt's version of
+    # NOTICE! sort_keys is a NOOP unless using Matt's version of
     # Ruamel's YAML library (https://bitbucket.org/tb3088/yaml)
     if hasattr(myaml.representer, 'sort_keys'):
         myaml.representer.sort_keys = options.sort_keys
@@ -249,7 +278,7 @@ def __main():
             logger.debug('Payload: %r\n', new_data)
         except (yaml.MarkedYAMLError) as e:
             logger.warning('YAML.load() -- %s' % str(e))
-            #raise YamlReaderError('YAML.load() -- %s' % str(e))
+            #raise YamlReaderError('during load() of "%s"' % yaml_file) from e
 
         if new_data: # is not None:
             data = data_merge(data, new_data, options.merge)
@@ -266,12 +295,13 @@ def __main():
         else:
             myaml.dump(data, sys.stdout)
     except yaml.MarkedYAMLError as e:
-        raise YamlReaderError('YAML.dump() -- %s' % str(e))
+        raise YamlReaderError('dump() -- %s' % str(e))
         #YamlReaderError("YAML.dump(): %s" % str(e))
     except (ValueError, OverflowError, TypeError):
-        # JSON dump might trigger
+        # JSON dump might trigger these
         pass
 
-        
-if __name__ == "__main__":
-    sys.exit(__main())
+
+if __name__ == '__main__':
+    (opts, args) = parse_cmdline()
+    sys.exit(main(opts, args))

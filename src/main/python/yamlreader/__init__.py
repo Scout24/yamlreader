@@ -2,6 +2,6 @@
 
 from __future__ import print_function, absolute_import, unicode_literals, division
 
-from .yamlreader import data_merge, get_files, YamlReaderError
+from .yamlreader import main, parse_cmdline, data_merge, get_files, YamlReaderError
 
-__all__ = ['data_merge', 'YamlReaderError']
+__all__ = ['main', 'data_merge',  'YamlReaderError']
