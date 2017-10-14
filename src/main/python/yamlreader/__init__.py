@@ -48,8 +48,7 @@ __yaml_defaults = dict(
         # see http://yaml.readthedocs.io/en/latest/detail.html#indentation-of-block-sequences
         indent = {}
     )
-#XXX
-print("my name is %s" % __name__)
+
 logger = logging.getLogger(__name__)
 logger.propagate = False
 
@@ -61,7 +60,7 @@ class YamlReaderError(Exception):
 
     #TODO if I was called as a raise, then do super() otherwise stomp on that output since it ends up on STDOUT
     def __init__(self, msg, rc=os.EX_SOFTWARE, level=logging.ERROR): #*args, **kwargs):
-        
+
         # send_to_logger = False
 
         # for handle in logger.get(handlers):
@@ -85,7 +84,7 @@ class YamlReaderError(Exception):
             logger.log(level, '%s::%s', frame, msg, exc_info=True)
             # mimic signals.h SIGTERM, or use os.EX_*
             sys.exit(128+rc)
-        
+
         logger.log(level, '%s::%s', frame, msg, exc_info=(options.verbose or options.debug))
 
 
@@ -123,7 +122,7 @@ def data_merge(a, b, merge=True):
             raise TypeError
 
     except (TypeError, LookupError) as e:
-        raise YamlReaderError('caught %r merging %r into %r\n  "%s" -> "%s"' % 
+        raise YamlReaderError('caught %r merging %r into %r\n  "%s" -> "%s"' %
             (e, type(b), type(a), b, a), logging.WARNING) from e
             # or str(e) also with e.__name__ ?
 
@@ -174,7 +173,7 @@ def parse_cmdline():
     """Process command-line options"""
 
     usage = "%prog [options] source ..."
-    parser = optparse.OptionParser(usage, 
+    parser = optparse.OptionParser(usage,
                 description='Merge YAML/JSON elements from Files, Directories, or Glob pattern',
                 version="%" + "prog %s" % __version__, prog='yamlreader')
 
@@ -267,7 +266,7 @@ def parse_cmdline():
 def _newYaml():
     #TODO use kwargs or module defaults?
     global myaml
-    
+
     try:
         if not isinstance(myaml, yaml.YAML):
             myaml = yaml.YAML(typ=options.loader)
@@ -291,10 +290,10 @@ def _newYaml():
 
 def yaml_load(source, defaultdata=None):
     """merge YAML data from files found in source
-    
+
     Always returns a dict. The files are read with the 'safe' loader
     though the other 3 options are possible.
-    
+
     'source' can be a file, a dir, a list/tuple of files or a string containing
     a glob expression (with ?*[]).
     For a directory, all *.yaml files will be read in alphabetical order.
@@ -303,7 +302,7 @@ def yaml_load(source, defaultdata=None):
 
     logger.debug("yaml_load() initialized with source='%s', defaultdata='%s'", source, defaultdata)
     _newYaml()
-        
+
     # NOTICE - sort_keys is a NOOP unless Matt's version of
     # Ruamel's YAML library (https://bitbucket.org/tb3088/yaml)
     if hasattr(myaml.representer, 'sort_keys'):
@@ -323,7 +322,7 @@ def yaml_load(source, defaultdata=None):
             new_data = myaml.load(open(yaml_file) if len(yaml_file) else sys.stdin)
             logger.debug('payload: %r\n', new_data)
         except yaml.MarkedYAMLError as ex:
-            YamlReaderError('during YAML.load() of %s' % yaml_file, 
+            YamlReaderError('during YAML.load() of %s' % yaml_file,
                 rc=os.EX_DATAERR, level=getLevel('NOTICE'))
         except:
             #FIXME what to do?
@@ -337,7 +336,7 @@ def yaml_load(source, defaultdata=None):
 
     return data
 
-    
+
 def __main(opts, *argv):
     import json
     global options
@@ -365,7 +364,7 @@ def __main(opts, *argv):
         #TODO check other fields which can't be blank
 
     except Exception as ex:
-        logger.critical("%s while merging 'opts' into 'options'.\n  %r\n  %r", 
+        logger.critical("%s while merging 'opts' into 'options'.\n  %r\n  %r",
                 ex.__name__, opts, options)
         return os.EX_CONFIG
 
@@ -387,7 +386,7 @@ def __main(opts, *argv):
         options.console_level = options.file_level = None
         options.verbose = True
         logger.setlevel(logging.DEBUG)
-        
+
     # override/set Handler-specific levels from parent
     if not options.console_level:
         options.console_level = options.log_level
@@ -457,7 +456,7 @@ def __main(opts, *argv):
         logger.warning('%s while dump()' % ex.__name__)
         # JSON dump might trigger these
         return os.EX_DATAERR
-    
+
     return os.EX_OK
 
 # if __name__ == '__main__':
