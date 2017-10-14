@@ -1,5 +1,6 @@
 import sys
-from __init__ import parse_cmdline, main
+from . import parse_cmdline, __main
 
-(opts, args) = parse_cmdline()
-sys.exit(main(opts, args))
+if __name__ == '__main__':
+    (opts, args) = parse_cmdline()
+    sys.exit(__main(opts, args))
