@@ -37,11 +37,9 @@ __defaults = dict(
         indent = 2,
         loader = 'safe'
     )
-options = optparse.Values(__defaults)
-options.console_format = '%s: ' % __name__ + options.log_format
 
-yaml_loaders = ['safe', 'base', 'rt', 'unsafe']
-#XXX use **dict to convert to kwargs
+yaml_loaders = ['safe', 'base', 'roundtrip', 'unsafe']
+#TODO use **dict to convert to kwargs
 __yaml_defaults = dict(
         preserve_quotes = True,
         default_flow_style = False,
@@ -49,13 +47,16 @@ __yaml_defaults = dict(
         indent = {}
     )
 
+
+options = optparse.Values(__defaults)
+options.console_format = '%s: ' % __name__ + options.log_format
 logger = logging.getLogger(__name__)
 logger.propagate = False
-
 myaml = None
 
 
 class YamlReaderError(Exception):
+#TODO rename to ...Exception for more obviousness? plus the level being dealt with isn't necessary just ERROR.
     """write YAML processing errors to logger"""
 
     #TODO if I was called as a raise, then do super() otherwise stomp on that output since it ends up on STDOUT
@@ -121,10 +122,9 @@ def data_merge(a, b, merge=True):
         else:
             raise TypeError
 
-    except (TypeError, LookupError) as e:
-        raise YamlReaderError('caught %r merging %r into %r\n  "%s" -> "%s"' %
-            (e, type(b), type(a), b, a), logging.WARNING) from e
-            # or str(e) also with e.__name__ ?
+    except (TypeError, LookupError) as ex:
+        raise YamlReaderError('caught %s (%s) merging %r into %r\n  "%s" -> "%s"' %
+            (type(ex).__name__, ex, type(b), type(a), b, a), logging.WARNING) from e
 
     return a
 
@@ -173,6 +173,7 @@ def parse_cmdline():
     """Process command-line options"""
 
     usage = "%prog [options] source ..."
+    #FIXME replace with argparse class
     parser = optparse.OptionParser(usage,
                 description='Merge YAML/JSON elements from Files, Directories, or Glob pattern',
                 version="%" + "prog %s" % __version__, prog='yamlreader')
@@ -262,14 +263,17 @@ def parse_cmdline():
     except Exception as ex:
         parser.error(ex)
 
+def _configure():
+    pass
 
 def _newYaml():
     #TODO use kwargs or module defaults?
     global myaml
 
+    if isinstance(myaml, yaml.YAML):
+        return
     try:
-        if not isinstance(myaml, yaml.YAML):
-            myaml = yaml.YAML(typ=options.loader)
+        myaml = yaml.YAML(typ=options.loader)
 
         # useful defaults for AWS CloudFormation
         myaml.preserve_quotes=True
@@ -280,7 +284,7 @@ def _newYaml():
         # see http://yaml.readthedocs.io/en/latest/detail.html#indentation-of-block-sequences
         myaml.indent = dict(
                 mapping  = options.indent,
-                sequence = options.indent * 2,
+                sequence = options.indent if options.indent >= 4 else options.indent * 2,
                 offset   = options.indent
             )
     #FIXME what can YAML() throw? need to catch Math error, possibly Type and ValueError
@@ -299,6 +303,8 @@ def yaml_load(source, defaultdata=None):
     For a directory, all *.yaml files will be read in alphabetical order.
     """
     global myaml
+    data = defaultdata
+    new_data = None
 
     logger.debug("yaml_load() initialized with source='%s', defaultdata='%s'", source, defaultdata)
     _newYaml()
@@ -313,7 +319,6 @@ def yaml_load(source, defaultdata=None):
         raise YamlReaderError('FileNotFoundError for %s' % source)
         return None
 
-    data = defaultdata
     for yaml_file in sorted(files, reverse=options.reverse) if options.sort_files else files:
         if options.verbose:
             logger.debug("processing '%s'...", yaml_file)
@@ -341,33 +346,36 @@ def __main(opts, *argv):
     import json
     global options
 
-    #TODO split varification into separate helper? getting too long.
     try:
-        # merge __defaults + user-supplied into 'options'
         if isinstance(opts, optparse.Values):
-            kv = vars(opts)
+            new = vars(opts)
         elif isinstance(opts, dict):
-            kv = opts
+            new = opts
         elif opts is None:
-            kv = {}
+            new = {}
         else:
             # too early for YamlReaderError
             raise TypeError("%s not supported for parameter 'opts'" % type(opts))
 
-        print(kv) #XXX
-
-        for k, v in kv.items():
-            options.ensure_value(k, v)
-
-        if not (options.log_level and options.log_format):
-            raise ValueError('options.log_* can not be blank')
-        #TODO check other fields which can't be blank
+        vars(options).update(new)
 
     except Exception as ex:
-        logger.critical("%s while merging 'opts' into 'options'.\n  %r\n  %r",
-                ex.__name__, opts, options)
+        logger.critical("caught %s (%s) while merging options",
+            type(ex).__name__, ex)
         return os.EX_CONFIG
 
+#FIXME
+# some/much of this actually needs to get moved to yaml_load() sub routine since that's the
+# public method call from external. Retain all stdIO and logfile stuff though. load_data()
+# only throws exceptions with formatted strings but NO io. Caller is responsible for catching
+# and emitting as their want.
+
+    if not (options.log_level and options.log_format):
+        raise ValueError('options.log_* can not be blank')
+
+
+    #TODO split varification into separate helper? getting too long.
+    #TODO check other fields which can't be left blank and have no defaults
 
     # adjust 'loader' because Ruamel's cryptic short name
     if options.loader == 'roundtrip':
@@ -376,8 +384,10 @@ def __main(opts, *argv):
     # normalize logging 'levels' and upcase for downstream lookups
     for attr in (s + '_level' for s in ['log', 'console', 'file']):
         try:
-            setattr(options, attr, str.upper(getattr(options,attr)))
-        except TypeError:
+            level = getattr(options, attr)
+            if isinstance(level, str):
+                setattr(options, attr, str.upper(level))
+        except (AttributeError, TypeError) as ex:
             pass
 
     if options.debug:
@@ -385,9 +395,9 @@ def __main(opts, *argv):
         # reset to trigger Handler-specific override
         options.console_level = options.file_level = None
         options.verbose = True
-        logger.setlevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
 
-    # override/set Handler-specific levels from parent
+    # override/set Handler-specific levels from 'parent'
     if not options.console_level:
         options.console_level = options.log_level
     if not options.file_level:
@@ -410,7 +420,6 @@ def __main(opts, *argv):
                 return os.EX_CONFIG
         else:
             logger.addHandler(console_handler)
-
     if options.logfile:
         try:
             file_handler = logging.FileHandler(options.logfile, mode='w')
@@ -428,6 +437,7 @@ def __main(opts, *argv):
     # squelch stacktrace if quiet. This affects all handlers, however which
     # wasn't the intent - just keep the console clear and not duplicate
     # exception strings. TODO
+
     if options.quiet:
         sys.excepthook = lambda *args: None
     elif options.debug:
@@ -435,30 +445,29 @@ def __main(opts, *argv):
     else:
         sys.excepthook = lambda exctype, exc, traceback : print("{}: {}".format(exctype.__name__, exc))
 
+    #TODO handle case of 'batching' files, say process them individually. and emit as multi-doc yaml.
+    # is there a method for JSON? I don't think so.
 
     # Finally ready to do useful work!
     data = yaml_load(argv)
     if data is None or len(data) == 0:
         # a NOOP is not an error, but no point going further
-        if option.verbose:
+        if options.verbose:
             logger.info('No YAML data found at all!')
         return os.EX_NOINPUT
 
     try:
         if options.json:
-            json.dump(data, sys.stdout, options.indent)
+            # JSON is hard to read at less than 4 spaces
+            json.dump(data, sys.stdout, indent=options.indent * 2 if options.indent < 4 else options.indent)
         else:
             myaml.dump(data, sys.stdout)
     #TODO combine logging, no need to raise since no external caller.
     #except yaml.MarkedYAMLError as ex:
     #except (ValueError, OverflowError, TypeError): json.dump()?
     except Exception as ex:
-        logger.warning('%s while dump()' % ex.__name__)
+        logger.error('caught %s (%s) while dump()' % type(ex).__name__, ex)
         # JSON dump might trigger these
         return os.EX_DATAERR
 
     return os.EX_OK
-
-# if __name__ == '__main__':
-    # (opts, args) = parse_cmdline()
-    # sys.exit(__main(opts, args))
