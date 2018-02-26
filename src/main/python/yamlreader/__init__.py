@@ -21,8 +21,8 @@ logging.addLevelName(99, 'ABORT')
 import ruamel.yaml as yaml
 from .yrlogging import getLevel #, getLevelName
 
-#FIXME everything that isn't 'main' 
-#FIXME putthis mostly back into main.py, 
+#FIXME everything that isn't 'main'
+#FIXME putthis mostly back into main.py,
 # the class methods can log. myaml being a class global is fine too.
 # options can stay, console_format needs to move to main().
 
@@ -201,7 +201,7 @@ def _newYaml(preserve_quotes=True, default_flow_style=False, indent=None):
         # see http://yaml.readthedocs.io/en/latest/detail.html#indentation-of-block-sequences
         #TODO update indents based on options.indent if parameter is None? Do we assume {} means no indent?
         if isinstance(indent, dict):
-            # TODO seq >= offset+2 
+            # TODO seq >= offset+2
             myaml.indent(mapping=indent['mapping'], offset=indent['offset'], sequence = indent['sequence'])
         elif isinstance(int, indent):
             myaml.indent(indent)
@@ -210,7 +210,7 @@ def _newYaml(preserve_quotes=True, default_flow_style=False, indent=None):
     #FIXME what can YAML() throw? need to catch Math error, possibly Type and ValueError
     # ??AttributeError when calling constructors
     except KeyError:
-        # ignore 
+        # ignore
         pass
     except Exception as ex:
         #TODO
@@ -277,7 +277,7 @@ def yaml_load(source, data=None,
             logger.log(getLevel('NOTICE'), "no payload found in '%s'", yaml_file)
 
     return data
-    
+
 
 def parse_cmdline():
     """Process command-line options"""
@@ -327,7 +327,7 @@ def parse_cmdline():
 
     parser.add_option('--console-level', dest='console_level',
             action='store', default=__defaults['console_level'],
-            help='%-35s %s' % ('', 
+            help='%-35s %s' % ('',
                 logging._levelToName.get(__defaults['console_level'])),
             choices=levels)
 
@@ -448,7 +448,7 @@ def __main(opts, *argv):
     if options.debug:
         logger.setLevel(logging.DEBUG)
         options.console_level = logging.DEBUG
-        options.logfile_level = logging.DEBUG #TODO getLevel('TRACE') 
+        options.logfile_level = logging.DEBUG #TODO getLevel('TRACE')
         options.verbose = True
         options.quiet = False
 
@@ -462,7 +462,7 @@ def __main(opts, *argv):
             logging.lastResort("%s (%s) configuring console_handler" % (type(ex).__name__, ex))
             if not options.ignore_error:
                 return os.EX_CONFIG
-        
+
     if options.logfile:
         try:
             file_handler = logging.FileHandler(options.logfile, mode='w')
@@ -491,7 +491,7 @@ def __main(opts, *argv):
 
     #TODO split varification into separate configure() helper? getting too long.
     #TODO check other fields which can't be left blank and have no defaults
-    
+
     #TODO handle case of 'batching' files, say process them individually. and emit as multi-doc yaml.
     # is there a method for JSON? I don't think so.
 
