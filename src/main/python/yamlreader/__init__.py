@@ -7,7 +7,17 @@ __version__ = '4.0.0'
 import os, sys
 #FIXME optparse deprecated in favor of argparse!!
 import optparse
+
+# see http://yaml.readthedocs.io/en/latest/overview.html
+import ruamel.yaml as yaml
+
+#from .logging import getLevel #, getLevelName
+import yamlreader.logging as yrl
 import logging
+#override core functions
+logging.getLevel = yrl.getLevel
+logging.getLevelName = yrl.getLevelName
+
 # define missing syslog(3) levels and also handy helpers
 logging.addLevelName(logging.DEBUG - 5, 'TRACE')
 logging.addLevelName(logging.INFO + 5, 'NOTICE')
@@ -17,9 +27,6 @@ logging.addLevelName(logging.CRITICAL + 10, 'ALERT')
 logging.addLevelName(logging.CRITICAL + 20, 'EMERG')
 logging.addLevelName(99, 'ABORT')
 
-# see http://yaml.readthedocs.io/en/latest/overview.html
-import ruamel.yaml as yaml
-from .yrlogging import getLevel #, getLevelName
 
 #FIXME everything that isn't 'main'
 #FIXME putthis mostly back into main.py,
@@ -82,7 +89,7 @@ class YamlReaderError(Exception):
                 # break
         #TODO check/rationalize log level.
         if isinstance(level, str):
-            level = getLevel(level)
+            level = logging.getLevel(level)
 
         #TODO case statement to generate/modify strings so it's not buried in multiple
         # places in code. eg. 'filenotfound' is easy case. msg == filename(s)
@@ -218,7 +225,7 @@ def _newYaml(preserve_quotes=True, default_flow_style=False, indent=None):
 
 
 def yaml_load(source, data=None,
-        preserve_quotes=True, default_flow_style=False, 
+        preserve_quotes=True, default_flow_style=False,
         indent=dict(mapping=options.indent, sequence=options.indent, offset=0)):
     #TODO pass in a pre-instantiated YAML class object so any 3rd party (API compat)
     """merge YAML data from files found in source
@@ -232,7 +239,7 @@ def yaml_load(source, data=None,
     """
     global myaml
 
-    logger.log(getLevel('TRACE'), "yaml_load() called with\n\tsource='%s'\n\tdata='%s'", source, data)
+    logger.log(logging.getLevel('TRACE'), "yaml_load() called with\n\tsource='%s'\n\tdata='%s'", source, data)
     #TODO bring _newYaml back here, it's not THAT long.
     # assume already configured
     if not isinstance(myaml, yaml.YAML):
@@ -261,7 +268,7 @@ def yaml_load(source, data=None,
         except (yaml.error.YAMLWarning, yaml.error.YAMLFutureWarning) as ex:
             if options.verbose:
                 logger.warning("%s during YAML.load()", type(ex).__name__)
-            logger.log(getLevel('NOTICE'), "%s", ex)
+            logger.log(logging.getLevel('NOTICE'), "%s", ex)
             # Ruamel throws this despite allow_duplicate_keys?
         except Exception as ex:
             #FIXME stuff from open(), data_merge()
@@ -274,7 +281,7 @@ def yaml_load(source, data=None,
             logger.debug('payload: %r\n', new_data)
             data = data_merge(data, new_data, options.merge)
         else:
-            logger.log(getLevel('NOTICE'), "no payload found in '%s'", yaml_file)
+            logger.log(logging.getLevel('NOTICE'), "no payload found in '%s'", yaml_file)
 
     return data
 
@@ -346,8 +353,8 @@ def parse_cmdline():
             action='store_false', default=__defaults['merge'],
             help='%-35s %s' % ('overwrite keys (last win)', "%default"))
 
-#FIXME is the sense correct? does it effect Merge in practical terms? aka if dup = false, it just skips the merge? 
-# as opposed to merge=false means overwrite.
+#FIXME is the sense correct? does it effect Merge in practical terms? aka if dup = false,
+# it just skips the merge as opposed to merge=false means overwrite.
 # this nullifies merge in either state.
     parser.add_option('-U', '--unique-keys', dest='allow_duplicate_keys',
             action='store_false', default=not __defaults['allow_duplicate_keys'],
