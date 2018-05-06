@@ -2,7 +2,7 @@ from __future__ import print_function, absolute_import, unicode_literals, divisi
 
 __version__ = '3.0.3'
 
-from yaml import MarkedYAMLError, safe_load, safe_dump
+from yaml import MarkedYAMLError, safe_load, safe_load_all, safe_dump
 import glob
 import os
 import logging
@@ -102,13 +102,13 @@ def yaml_load(source, defaultdata=NO_DEFAULT):
         for yaml_file in files:
             try:
                 with open(yaml_file) as f:
-                    new_data = safe_load(f)
+                    new_data = safe_load_all(f)
+                    for doc in new_data:
+                        data = data_merge(data, doc)
                 logger.debug("YAML LOAD: %s", new_data)
             except MarkedYAMLError as e:
                 logger.error("YAML Error: %s", e)
                 raise YamlReaderError("YAML Error: %s" % str(e))
-            if new_data is not None:
-                data = data_merge(data, new_data)
     else:
         if defaultdata is NO_DEFAULT:
             logger.error("No YAML data found in %s and no default data given", source)
