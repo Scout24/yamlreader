@@ -5,6 +5,7 @@ __version__ = '3.0.3'
 #from ruamel.yaml import MarkedYAMLError, safe_load, safe_load_all, safe_dump
 from ruamel.yaml import YAML, MarkedYAMLError
 yaml = YAML()
+yaml.default_style='"'
 import sys
 
 import glob
