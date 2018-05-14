@@ -2,7 +2,11 @@ from __future__ import print_function, absolute_import, unicode_literals, divisi
 
 __version__ = '3.0.3'
 
-from yaml import MarkedYAMLError, safe_load, safe_load_all, safe_dump
+#from ruamel.yaml import MarkedYAMLError, safe_load, safe_load_all, safe_dump
+from ruamel.yaml import YAML, MarkedYAMLError
+yaml = YAML()
+import sys
+
 import glob
 import os
 import logging
@@ -102,7 +106,7 @@ def yaml_load(source, defaultdata=NO_DEFAULT):
         for yaml_file in files:
             try:
                 with open(yaml_file) as f:
-                    new_data = safe_load_all(f)
+                    new_data = yaml.load_all(f)
                     for doc in new_data:
                         data = data_merge(data, doc)
                 logger.debug("YAML LOAD: %s", new_data)
@@ -136,8 +140,7 @@ def __main():
     if not args:
         parser.error("Need at least one argument")
     try:
-        print(safe_dump(yaml_load(args, defaultdata={}),
-                        indent=4, default_flow_style=False, canonical=False))
+        yaml.dump(yaml_load(args, defaultdata={}), sys.stdout)
     except Exception as e:
         parser.error(e)
 

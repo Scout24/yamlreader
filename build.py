@@ -22,7 +22,7 @@ default_task = ["clean", "analyze", "publish"]
 
 @init
 def set_properties(project):
-    project.depends_on("PyYAML")
+    project.depends_on("ruamel.yaml")
     project.depends_on("six")
 
     project.set_property('distutils_console_scripts', ['yamlreader=yamlreader.yamlreader:__main'])
@@ -39,6 +39,7 @@ def set_properties(project):
         "Programming Language :: Python :: 3.6",
     ])
 
+    project.set_property("coverage_break_build", False) # default is True
 
 @task
 @depends('prepare')
