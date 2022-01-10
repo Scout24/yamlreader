@@ -6,6 +6,9 @@
 ==========
 yamlreader
 ==========
+
+# Scout24 has moved away from using this application. Therefor this applcation is deprecated and the repository will be archived.
+
 Merge YAML data from a directory, a list of files or a file glob. With a
 directory, the YAML files (`*.yaml`) are sorted alphabetically. The YAML
 files are expected to contain a complex key-value structure and merged
