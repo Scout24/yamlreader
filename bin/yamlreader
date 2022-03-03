@@ -1,0 +1,13 @@
+#!/usr/bin/python3
+
+import re
+import sys
+import os
+
+sys.argv[0] = re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])
+from yamlreader import parse_cmdline, __main
+
+if __name__ == '__main__':
+    (opts, args) = parse_cmdline()
+    sys.exit(__main(opts, args))
+
